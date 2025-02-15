@@ -1,4 +1,5 @@
 import express from "express";
+import { authLimiter } from "../config/rateLimiter";
 import {
   register,
   login,
@@ -14,9 +15,13 @@ const router = express.Router();
 router.post("/register", register);
 router.post("/login", login);
 router.post("/refresh-token", refreshToken);
-router.post("/request-email-verification", requestEmailVerification);
+router.post(
+  "/request-email-verification",
+  authLimiter,
+  requestEmailVerification
+);
 router.get("/verify-email", verifyEmail);
-router.post("/request-password-reset", requestPasswordReset);
+router.post("/request-password-reset", authLimiter, requestPasswordReset);
 router.post("/reset-password", resetPassword);
 
 export default router;

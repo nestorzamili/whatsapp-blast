@@ -7,7 +7,6 @@ import {
   generateVerificationToken,
   verifyRefreshToken,
 } from "../config/jwt";
-import jwt from "jsonwebtoken";
 import {
   sendVerificationEmail,
   sendPasswordResetEmail,
@@ -54,7 +53,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         "User registered successfully. Please check your email to verify your account.",
     });
   } catch (error) {
-    logger.error("An unknown error occurred");
+    logger.error("An unknown error occurred", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
@@ -126,7 +125,7 @@ export const refreshToken = async (
     logger.info("Access token refreshed successfully");
     res.json({ accessToken: newAccessToken });
   } catch (error) {
-    logger.error("Error refreshing token", error);
+    logger.error("An unknown error occurred", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -171,7 +170,7 @@ export const requestEmailVerification = async (
     logger.info("Verification email sent");
     res.json({ message: "Verification email sent" });
   } catch (error) {
-    logger.error("An unknown error occurred");
+    logger.error("An unknown error occurred", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
@@ -213,7 +212,7 @@ export const verifyEmail = async (
     logger.info("Email verified successfully");
     res.json({ message: "Email verified successfully" });
   } catch (error) {
-    logger.error("Invalid token");
+    logger.error("An unknown error occurred", error);
     res.status(400).json({ message: "Invalid token" });
   }
 };
@@ -252,7 +251,7 @@ export const requestPasswordReset = async (
     logger.info("Password reset email sent");
     res.json({ message: "Password reset email sent" });
   } catch (error) {
-    logger.error("An unknown error occurred");
+    logger.error("An unknown error occurred", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
@@ -296,7 +295,7 @@ export const resetPassword = async (
     logger.info("Password reset successfully");
     res.json({ message: "Password reset successfully" });
   } catch (error) {
-    logger.error("Invalid token");
+    logger.error("An unknown error occurred", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
