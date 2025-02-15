@@ -82,9 +82,6 @@ export const emailVerification = ({
     </head>
     <body>
       <div class="container">
-        <div class="header">
-          <img src="https://res.cloudinary.com/navindo/image/upload/f_auto/wa_lutn5k.png" alt="WhatsApp Blast Logo" />
-        </div>
         <div class="content">
           <h1>${title}</h1>
           <p>${message}</p>
