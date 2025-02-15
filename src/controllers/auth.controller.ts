@@ -121,7 +121,8 @@ export const refreshToken = async (
       return;
     }
 
-    const newAccessToken = generateAccessToken(verification.payload);
+    const { id, role, name, email } = verification.payload;
+    const newAccessToken = generateAccessToken({ id, role, name, email });
     logger.info("Access token refreshed successfully");
     res.json({ accessToken: newAccessToken });
   } catch (error) {

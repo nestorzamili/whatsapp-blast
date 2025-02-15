@@ -2,3 +2,5 @@ node_modules
 logs/
 prisma/migrations/
 .env
+sessions/
+.wwebjs_cache

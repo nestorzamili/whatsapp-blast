@@ -4,6 +4,7 @@ import helmet from "helmet";
 import morganMiddleware from "./middleware/morgan.middleware";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes";
+import whatsappRoutes from "./routes/whatsapp.routes";
 import logger from "./config/logger";
 
 dotenv.config();
@@ -19,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/auth", authRoutes);
+app.use("/whatsapp", whatsappRoutes);
 
 // Error handler
 app.use(

@@ -25,14 +25,16 @@ model User {
 }
 
 model Client {
-  id        String       @id @default(uuid())
-  userId    String       @map("user_id")
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  session   String?
-  status    ClientStatus @default(IDLE)
-  messages  Message[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id         String       @id @default(uuid()) @map("user_id")
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session    String?
+  status     ClientStatus @default(INITIALIZING)
+  lastActive DateTime?
+  lastQrCode String?
+  messages   Message[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 }
 
 model Message {
@@ -47,8 +49,8 @@ model Message {
 
 enum ClientStatus {
   INITIALIZING
-  IDLE
   CONNECTED
+  IDLE
   DISCONNECTED
 }
 
