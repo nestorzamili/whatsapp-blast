@@ -4,7 +4,7 @@ import logger from "../config/logger";
 
 export const sendVerificationEmail = async (email: string, token: string) => {
   try {
-    const verifyLink = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+    const verifyLink = `${process.env.FRONTEND_URL}/auth/verify-email?token=${token}`;
     const htmlContent = emailVerification({
       title: "Verify Your Email",
       message: "Please click the button below to verify your email address.",
@@ -31,7 +31,7 @@ export const sendVerificationEmail = async (email: string, token: string) => {
 
 export const sendPasswordResetEmail = async (email: string, token: string) => {
   try {
-    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+    const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${token}`;
     const htmlContent = emailVerification({
       title: "Reset Your Password",
       message: "Please click the button below to reset your password.",
