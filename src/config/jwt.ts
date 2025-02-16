@@ -1,19 +1,6 @@
 import jwt, { SignOptions, TokenExpiredError } from "jsonwebtoken";
 import crypto from "crypto";
 
-type UserPayload = {
-  id: string;
-  role: string;
-  name: string;
-  email: string;
-};
-
-type VerificationResult = {
-  isValid: boolean;
-  payload: UserPayload | null;
-  error?: string;
-};
-
 const JWT_SECRET = process.env.JWT_SECRET as string;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET as string;
 

@@ -1,8 +1,4 @@
 import prisma from "../config/db";
-import {
-  IMessagePayload,
-  IMessageRecord,
-} from "../interfaces/message.interface";
 import { cleanPhoneNumber } from "../utils/phone.util";
 
 export class MessageRepository {

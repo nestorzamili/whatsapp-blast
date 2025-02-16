@@ -3,7 +3,6 @@ import { WhatsAppService } from "../services/whatsapp.service";
 import prisma from "../config/db";
 import logger from "../config/logger";
 import messageRepository from "../repositories/message.repository";
-import { IMessagePayload } from "../interfaces/message.interface";
 import { MessageStatus } from "@prisma/client";
 
 const activeClients: Map<string, WhatsAppService> = new Map();

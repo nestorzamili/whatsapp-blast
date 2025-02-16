@@ -1,8 +1,4 @@
 import EventEmitter from "events";
-import {
-  IMessageRecord,
-  IBatchProgress,
-} from "../interfaces/message.interface";
 import messageRepository from "../repositories/message.repository";
 
 export class BatchProcessor extends EventEmitter {

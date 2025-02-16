@@ -3,20 +3,6 @@ import { verifyToken } from "../config/jwt";
 import prisma from "../config/db";
 import logger from "../config/logger";
 
-// Extend Express Request type
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        role: string;
-        name: string;
-        email: string;
-      };
-    }
-  }
-}
-
 export const authMiddleware = async (
   req: Request,
   res: Response,

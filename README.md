@@ -18,8 +18,6 @@ whatsapp-bulk
 │  ├─ controllers
 │  │  ├─ auth.controller.ts
 │  │  └─ whatsapp.controller.ts
-│  ├─ interfaces
-│  │  └─ message.interface.ts
 │  ├─ middleware
 │  │  ├─ auth.middleware.ts
 │  │  └─ morgan.middleware.ts
@@ -36,6 +34,7 @@ whatsapp-bulk
 │  │  └─ whatsapp.service.ts
 │  ├─ templates
 │  │  └─ emailVerification.ts
+│  ├─ types.d.ts
 │  └─ utils
 │     └─ phone.util.ts
 └─ tsconfig.json
