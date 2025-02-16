@@ -20,7 +20,7 @@ router.post(
   authLimiter,
   requestEmailVerification
 );
-router.post("/verify-email", verifyEmail);
+router.get("/verify-email/:token", verifyEmail);
 router.post("/request-password-reset", authLimiter, requestPasswordReset);
 router.post("/reset-password", resetPassword);
 

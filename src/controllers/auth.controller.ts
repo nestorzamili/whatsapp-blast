@@ -1,16 +1,5 @@
 import { Request, Response } from "express";
-import bcrypt from "bcryptjs";
-import prisma from "../config/db";
-import {
-  generateAccessToken,
-  generateRefreshToken,
-  generateVerificationToken,
-  verifyRefreshToken,
-} from "../config/jwt";
-import {
-  sendVerificationEmail,
-  sendPasswordResetEmail,
-} from "../services/email.service";
+import authService from "../services/auth.service";
 import logger from "../config/logger";
 
 export const register = async (req: Request, res: Response): Promise<void> => {
@@ -22,39 +11,16 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-
-  if (existingUser) {
-    logger.error("User already exists");
-    res.status(400).json({ message: "User already exists" });
-    return;
-  }
-
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = generateVerificationToken();
-
-    await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: "user",
-        verificationToken,
-        verifyExpires: new Date(Date.now() + 15 * 60 * 1000),
-      },
-    });
-
-    await sendVerificationEmail(email, verificationToken);
-
+    await authService.register(name, email, password);
     logger.info("User registered successfully");
     res.json({
       message:
         "User registered successfully. Please check your email to verify your account.",
     });
-  } catch (error) {
-    logger.error("An unknown error occurred", error);
-    res.status(500).json({ message: "Internal Server Error" });
+  } catch (error: any) {
+    logger.error(error.message);
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -68,35 +34,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
-
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      logger.error("Invalid credentials");
-      res.status(401).json({ message: "Invalid credentials" });
-      return;
-    }
-
-    if (!user.isVerified) {
-      logger.error("Email is not verified");
-      res.status(400).json({ message: "Email is not verified" });
-      return;
-    }
-
-    const userPayload = {
-      id: user.id,
-      role: user.role,
-      name: user.name,
-      email: user.email,
-    };
-
-    const accessToken = generateAccessToken(userPayload);
-    const refreshToken = generateRefreshToken(userPayload);
-
+    const tokens = await authService.login(email, password);
     logger.info("User logged in successfully");
-    res.json({ accessToken, refreshToken });
-  } catch (error) {
-    logger.error("An unknown error occurred", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.json(tokens);
+  } catch (error: any) {
+    logger.error(error.message);
+    res.status(401).json({ message: error.message });
   }
 };
 
@@ -113,21 +56,12 @@ export const refreshToken = async (
   }
 
   try {
-    const verification = await verifyRefreshToken(refreshToken);
-
-    if (!verification.isValid || !verification.payload) {
-      logger.error(verification.error);
-      res.status(401).json({ message: verification.error });
-      return;
-    }
-
-    const { id, role, name, email } = verification.payload;
-    const newAccessToken = generateAccessToken({ id, role, name, email });
+    const result = await authService.refreshAccessToken(refreshToken);
     logger.info("Access token refreshed successfully");
-    res.json({ accessToken: newAccessToken });
-  } catch (error) {
-    logger.error("An unknown error occurred", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.json(result);
+  } catch (error: any) {
+    logger.error(error.message);
+    res.status(401).json({ message: error.message });
   }
 };
 
@@ -144,35 +78,12 @@ export const requestEmailVerification = async (
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
-
-    if (!user) {
-      logger.error("User not found");
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-
-    if (user.isVerified) {
-      logger.error("Email is already verified");
-      res.status(400).json({ message: "Email is already verified" });
-      return;
-    }
-
-    const token = generateVerificationToken();
-    await prisma.user.update({
-      where: { email },
-      data: {
-        verificationToken: token,
-        verifyExpires: new Date(Date.now() + 15 * 60 * 1000),
-      },
-    });
-
-    await sendVerificationEmail(email, token);
+    await authService.requestEmailVerification(email);
     logger.info("Verification email sent");
     res.json({ message: "Verification email sent" });
-  } catch (error) {
-    logger.error("An unknown error occurred", error);
-    res.status(500).json({ message: "Internal Server Error" });
+  } catch (error: any) {
+    logger.error(error.message);
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -180,41 +91,21 @@ export const verifyEmail = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const token = req.query.token as string;
+  const { token } = req.params;
 
   if (!token) {
     logger.error("Token is required");
-    res.status(400).json({ message: "Token is required" });
+    res.redirect(`${process.env.FRONTEND_URL}/auth/login`);
     return;
   }
 
   try {
-    const user = await prisma.user.findFirst({
-      where: {
-        verificationToken: token,
-        verifyExpires: { gt: new Date() },
-      },
-    });
-
-    if (!user) {
-      logger.error("Invalid or expired token");
-      res.status(400).json({ message: "Invalid or expired token" });
-      return;
-    }
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        isVerified: true,
-        verificationToken: null,
-        verifyExpires: null,
-      },
-    });
+    await authService.verifyEmail(token);
     logger.info("Email verified successfully");
-    res.json({ message: "Email verified successfully" });
+    res.redirect(`${process.env.FRONTEND_URL}/auth/login`);
   } catch (error) {
-    logger.error("An unknown error occurred", error);
-    res.status(400).json({ message: "Invalid token" });
+    logger.error("Invalid or expired token");
+    res.redirect(`${process.env.FRONTEND_URL}/auth/login`);
   }
 };
 
@@ -231,29 +122,12 @@ export const requestPasswordReset = async (
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
-
-    if (!user) {
-      logger.error("User not found");
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-
-    const resetToken = generateVerificationToken();
-    await prisma.user.update({
-      where: { email },
-      data: {
-        resetToken: resetToken,
-        resetTokenExpires: new Date(Date.now() + 15 * 60 * 1000),
-      },
-    });
-
-    await sendPasswordResetEmail(email, resetToken);
+    await authService.requestPasswordReset(email);
     logger.info("Password reset email sent");
     res.json({ message: "Password reset email sent" });
-  } catch (error) {
-    logger.error("An unknown error occurred", error);
-    res.status(500).json({ message: "Internal Server Error" });
+  } catch (error: any) {
+    logger.error(error.message);
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -271,32 +145,11 @@ export const resetPassword = async (
   }
 
   try {
-    const user = await prisma.user.findFirst({
-      where: {
-        resetToken: token,
-        resetTokenExpires: { gt: new Date() },
-      },
-    });
-
-    if (!user) {
-      logger.error("Invalid or expired token");
-      res.status(400).json({ message: "Invalid or expired token" });
-      return;
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        resetToken: null,
-        resetTokenExpires: null,
-      },
-    });
+    await authService.resetPassword(token, newPassword);
     logger.info("Password reset successfully");
     res.json({ message: "Password reset successfully" });
-  } catch (error) {
-    logger.error("An unknown error occurred", error);
-    res.status(500).json({ message: "Internal Server Error" });
+  } catch (error: any) {
+    logger.error(error.message);
+    res.status(400).json({ message: error.message });
   }
 };

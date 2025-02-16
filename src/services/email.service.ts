@@ -4,7 +4,7 @@ import logger from "../config/logger";
 
 export const sendVerificationEmail = async (email: string, token: string) => {
   try {
-    const verifyLink = `${process.env.FRONTEND_URL}/auth/verify-email?token=${token}`;
+    const verifyLink = `${process.env.BACKEND_URL}/auth/verify-email/${token}`;
     const htmlContent = emailVerification({
       title: "Verify Your Email",
       message: "Please click the button below to verify your email address.",
