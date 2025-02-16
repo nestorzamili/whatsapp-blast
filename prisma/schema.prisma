@@ -44,6 +44,7 @@ model Message {
   number    String
   content   String
   status    MessageStatus @default(PENDING)
+  error     String?
   createdAt DateTime      @default(now())
 }
 

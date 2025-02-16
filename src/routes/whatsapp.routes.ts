@@ -3,14 +3,24 @@ import {
   initializeClient,
   sendBatchMessages,
   logoutClient,
+  getClientStatus,
+  getMessages,
+  getMessageStatus,
 } from "../controllers/whatsapp.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = express.Router();
 
 router.use(authMiddleware);
-router.post("/initialize", initializeClient);
-router.post("/send", sendBatchMessages);
-router.post("/logout", logoutClient);
+
+router
+  .route("/client")
+  .post(initializeClient)
+  .get(getClientStatus)
+  .delete(logoutClient);
+
+router.route("/messages").post(sendBatchMessages).get(getMessages);
+
+router.get("/messages/:id", getMessageStatus);
 
 export default router;
