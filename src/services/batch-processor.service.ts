@@ -6,7 +6,7 @@ export class BatchProcessor extends EventEmitter {
     super();
   }
 
-  async processBatch(messages: IMessageRecord[]): Promise<void> {
+  async processBatch(messages: MessageRecord[]): Promise<void> {
     const totalMessages = messages.length;
     let processedCount = 0;
     let successCount = 0;
@@ -55,6 +55,6 @@ export class BatchProcessor extends EventEmitter {
       failed,
       currentBatch: Math.ceil(processed / 20),
       totalBatches: Math.ceil(total / 20),
-    } as IBatchProgress);
+    } as BatchProgress);
   }
 }

@@ -4,8 +4,8 @@ import { cleanPhoneNumber } from "../utils/phone.util";
 export class MessageRepository {
   async createMessages(
     clientId: string,
-    messages: IMessagePayload | IMessagePayload[]
-  ): Promise<IMessageRecord[]> {
+    messages: MessagePayload | MessagePayload[]
+  ): Promise<MessageRecord[]> {
     const messageArray = Array.isArray(messages) ? messages : [messages];
 
     const result = await prisma.$transaction(

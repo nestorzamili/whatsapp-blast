@@ -88,7 +88,7 @@ export const sendBatchMessages: RequestHandler = async (
       return;
     }
 
-    const messages = req.body.messages as IMessagePayload[];
+    const messages = req.body.messages as MessagePayload[];
     if (!Array.isArray(messages) || messages.length === 0) {
       res.status(400).json({
         success: false,

@@ -1,17 +1,49 @@
+export interface UserPayload {
+  id: string;
+  role: string;
+  name: string;
+  email: string;
+}
+
+export interface VerificationResult {
+  isValid: boolean;
+  payload: UserPayload | null;
+  error?: string;
+}
+
 declare global {
-  interface IMessagePayload {
+  type ClientStatus = "INITIALIZING" | "CONNECTED" | "DISCONNECTED" | "IDLE";
+  type MessageStatus = "PENDING" | "SENT" | "FAILED";
+
+  interface MessageBase {
     number: string;
     content: string;
   }
 
-  interface IMessageRecord extends IMessagePayload {
+  interface WhatsAppClient {
     id: string;
+    userId: string;
+    session?: string | null;
+    status: ClientStatus;
+    lastActive?: Date;
+    lastQrCode?: string | null;
+  }
+
+  interface ClientUpdate
+    extends Partial<
+      Pick<WhatsAppClient, "status" | "session" | "lastActive" | "lastQrCode">
+    > {}
+  interface Message extends MessageBase {
+    id: string;
+  }
+  interface MessagePayload extends MessageBase {}
+  interface MessageRecord extends Message {
     clientId: string;
-    status: "PENDING" | "SENT" | "FAILED";
+    status: MessageStatus;
     error?: string;
   }
 
-  interface IBatchProgress {
+  interface BatchProgress {
     total: number;
     processed: number;
     successful: number;
@@ -22,27 +54,9 @@ declare global {
 
   namespace Express {
     interface Request {
-      user?: {
-        id: string;
-        role: string;
-        name: string;
-        email: string;
-      };
+      user?: UserPayload;
     }
   }
-
-  type UserPayload = {
-    id: string;
-    role: string;
-    name: string;
-    email: string;
-  };
-
-  type VerificationResult = {
-    isValid: boolean;
-    payload: UserPayload | null;
-    error?: string;
-  };
 }
 
 export {};

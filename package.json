@@ -1,5 +1,5 @@
 {
-  "name": "whatsapp-bulk",
+  "name": "whatsapp-blast",
   "version": "1.0.0",
   "main": "dist/server.js",
   "scripts": {

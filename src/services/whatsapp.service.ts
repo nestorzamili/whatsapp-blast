@@ -12,6 +12,8 @@ export class WhatsAppService extends EventEmitter {
   private clientId: string;
   private sessionPath: string;
   private BATCH_SIZE = 20;
+  private idleTimer: NodeJS.Timeout | null = null;
+  private readonly IDLE_TIMEOUT = 5 * 60 * 1000;
 
   constructor(userId: string, clientId: string) {
     super();
@@ -29,59 +31,85 @@ export class WhatsAppService extends EventEmitter {
     });
 
     this.setupEventListeners();
+    this.startIdleTimer();
+  }
+
+  private startIdleTimer(): void {
+    this.stopIdleTimer();
+    this.idleTimer = setTimeout(async () => {
+      logger.info(`Client ${this.clientId} idle timeout reached`);
+      await this.handleIdle();
+    }, this.IDLE_TIMEOUT);
+  }
+
+  private stopIdleTimer(): void {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
+  }
+
+  private resetIdleTimer(): void {
+    this.startIdleTimer();
+    prisma.client
+      .update({
+        where: { id: this.clientId },
+        data: { lastActive: new Date() },
+      })
+      .catch((err) => {
+        logger.error("Failed to update lastActive timestamp:", err);
+      });
+  }
+
+  private async updateClient(data: ClientUpdate): Promise<void> {
+    try {
+      await prisma.client.update({
+        where: { id: this.clientId },
+        data,
+      });
+    } catch (err) {
+      logger.error(`Failed to update client:`, err);
+    }
   }
 
   private setupEventListeners(): void {
-    this.updateClientSession();
+    this.updateClient({
+      session: `${this.sessionPath}/session-${this.userId}`,
+    });
 
     this.client.on("qr", (qr) => {
       logger.info(`QR Code generated for client ${this.clientId}`);
       this.emit("qr", qr);
       qrcode.generate(qr, { small: true });
-      this.updateClientStatus("INITIALIZING", qr);
+      this.updateClient({
+        status: "INITIALIZING",
+        lastQrCode: qr,
+      });
     });
 
     this.client.on("ready", async () => {
       logger.info(`Client ${this.clientId} is ready`);
       this.emit("ready");
-      await this.updateClientStatus("CONNECTED");
+      this.updateClient({
+        status: "CONNECTED",
+        lastActive: new Date(),
+        session: await this.getSessionData(),
+      });
     });
 
     this.client.on("disconnected", async () => {
       logger.warn(`Client ${this.clientId} disconnected`);
       this.emit("disconnected");
-      await this.updateClientStatus("DISCONNECTED");
+      this.updateClient({
+        status: "DISCONNECTED",
+        session: null,
+      });
+      this.stopIdleTimer();
     });
-  }
 
-  private async updateClientSession(): Promise<void> {
-    try {
-      await prisma.client.update({
-        where: { id: this.clientId },
-        data: { session: `${this.sessionPath}/session-${this.userId}` },
-      });
-    } catch (err) {
-      logger.error("Failed to update session path:", err);
-    }
-  }
-
-  private async updateClientStatus(
-    status: "INITIALIZING" | "CONNECTED" | "DISCONNECTED",
-    qrCode?: string
-  ): Promise<void> {
-    try {
-      await prisma.client.update({
-        where: { id: this.clientId },
-        data: {
-          status,
-          lastActive: status === "CONNECTED" ? new Date() : undefined,
-          lastQrCode: qrCode || null,
-          session: status === "CONNECTED" ? await this.getSessionData() : null,
-        },
-      });
-    } catch (err) {
-      logger.error(`Failed to update client status to ${status}:`, err);
-    }
+    this.client.on("message", () => {
+      this.resetIdleTimer();
+    });
   }
 
   async initialize() {
@@ -105,9 +133,8 @@ export class WhatsAppService extends EventEmitter {
     }
   }
 
-  async sendBulkMessages(
-    messages: { id: string; number: string; content: string }[]
-  ): Promise<void> {
+  async sendBulkMessages(messages: Message[]): Promise<void> {
+    this.resetIdleTimer();
     const batches = this.splitIntoBatches(messages);
 
     for (const batch of batches) {
@@ -143,7 +170,7 @@ export class WhatsAppService extends EventEmitter {
 
   private async updateMessageStatus(
     messageId: string,
-    status: "SENT" | "FAILED",
+    status: MessageStatus,
     error?: string
   ): Promise<void> {
     await prisma.message.update({
@@ -161,10 +188,8 @@ export class WhatsAppService extends EventEmitter {
     }
   }
 
-  private splitIntoBatches(
-    messages: { id: string; number: string; content: string }[]
-  ): { id: string; number: string; content: string }[][] {
-    const batches: { id: string; number: string; content: string }[][] = [];
+  private splitIntoBatches(messages: Message[]): Message[][] {
+    const batches: Message[][] = [];
     for (let i = 0; i < messages.length; i += this.BATCH_SIZE) {
       batches.push(messages.slice(i, i + this.BATCH_SIZE));
     }
@@ -175,20 +200,37 @@ export class WhatsAppService extends EventEmitter {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  async destroy() {
+  private async handleIdle() {
+    this.stopIdleTimer();
+    try {
+      await this.updateClient({ status: "IDLE" });
+      await this.client.destroy();
+    } catch (error) {
+      logger.error("Error handling idle state:", error);
+      throw error;
+    }
+  }
+
+  private async handleLogout() {
+    this.stopIdleTimer();
     try {
       await this.client.logout();
       await this.client.destroy();
-      await prisma.client.update({
-        where: { id: this.clientId },
-        data: {
-          status: "DISCONNECTED",
-          session: null,
-        },
+      await this.updateClient({
+        status: "DISCONNECTED",
+        session: null,
       });
     } catch (error) {
-      logger.error("Error destroying client:", error);
+      logger.error("Error handling logout:", error);
       throw error;
+    }
+  }
+
+  async destroy(logout: boolean = false) {
+    if (logout) {
+      await this.handleLogout();
+    } else {
+      await this.handleIdle();
     }
   }
 
