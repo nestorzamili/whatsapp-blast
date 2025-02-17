@@ -11,6 +11,10 @@ export interface VerificationResult {
   error?: string;
 }
 
+export interface FileSystemError extends Error {
+  code?: string;
+}
+
 declare global {
   type ClientStatus = "INITIALIZING" | "CONNECTED" | "DISCONNECTED" | "IDLE";
   type MessageStatus = "PENDING" | "SENT" | "FAILED";

@@ -4,6 +4,7 @@ import prisma from "../config/db";
 import logger from "../config/logger";
 import messageRepository from "../repositories/message.repository";
 import { MessageStatus } from "@prisma/client";
+import { BatchProcessor } from "../services/batch-processor.service";
 
 const activeClients: Map<string, WhatsAppService> = new Map();
 
@@ -42,7 +43,7 @@ export const initializeClient: RequestHandler = async (
       }
 
       instance?.removeAllListeners();
-      await instance?.destroy();
+      instance?.handleLogout(); // Changed from destroy()
       activeClients.delete(client.id);
     }
 
@@ -111,7 +112,15 @@ export const sendBatchMessages: RequestHandler = async (
       messages
     );
 
-    whatsappInstance.sendBulkMessages(messageRecords).catch((error) => {
+    const batchProcessor = new BatchProcessor(whatsappInstance);
+
+    batchProcessor.on("progress", (progress: BatchProgress) => {
+      logger.info(
+        `Batch ${progress.currentBatch}/${progress.totalBatches} completed. Processed: ${progress.processed}/${progress.total} messages (Success: ${progress.successful}, Failed: ${progress.failed})`
+      );
+    });
+
+    batchProcessor.processBatch(messageRecords).catch((error) => {
       logger.error("Message processing error:", error);
     });
 
@@ -155,22 +164,13 @@ export const logoutClient: RequestHandler = async (
 
     const whatsappInstance = activeClients.get(existingClient.id);
     if (whatsappInstance) {
-      await whatsappInstance.destroy();
+      whatsappInstance.handleLogout();
       activeClients.delete(existingClient.id);
     }
 
-    await prisma.client.update({
-      where: { id: existingClient.id },
-      data: {
-        status: "DISCONNECTED",
-        session: null,
-        lastActive: new Date(),
-      },
-    });
-
     res.status(200).json({
       success: true,
-      message: "WhatsApp client logged out successfully",
+      message: "WhatsApp client logout initiated",
     });
   } catch (error: any) {
     logger.error(`Logout client error: ${error.message}`);
