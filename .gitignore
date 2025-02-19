@@ -4,3 +4,4 @@ prisma/migrations/
 .env
 sessions/
 .wwebjs_cache
+dist/
