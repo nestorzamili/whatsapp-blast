@@ -1,6 +1,5 @@
 import prisma from "../config/db";
 import { cleanPhoneNumber } from "../utils/phone.util";
-import { Message } from "@prisma/client";
 
 export class MessageRepository {
   async createMessages(
