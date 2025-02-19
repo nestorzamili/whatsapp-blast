@@ -24,7 +24,7 @@ export class BatchProcessor extends EventEmitter {
             await this.whatsappService.sendMessage(
               message.number,
               message.content,
-              message.mediaUrl
+              message.mediaUrl ?? undefined
             );
             await messageRepository.updateMessageStatus(message.id, "SENT");
             successCount++;

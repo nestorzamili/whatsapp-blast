@@ -5,7 +5,7 @@ declare global {
   interface MessageBase {
     number: string;
     content: string;
-    mediaUrl?: string;
+    mediaUrl?: string | null; // Change this to allow null
   }
 
   interface WhatsAppClient {
@@ -23,6 +23,10 @@ declare global {
     > {}
   interface Message extends MessageBase {
     id: string;
+    clientId: string;
+    status: MessageStatus;
+    error: string | null;
+    createdAt: Date;
   }
   interface MessagePayload {
     numbers: string[];

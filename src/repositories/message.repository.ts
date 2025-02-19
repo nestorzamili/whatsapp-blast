@@ -16,7 +16,7 @@ export class MessageRepository {
             clientId,
             number: cleanedNumber,
             content,
-            mediaUrl: media,
+            mediaUrl: media || null, // Convert undefined to null
             status: "PENDING",
             createdAt: new Date(),
           },
@@ -29,9 +29,10 @@ export class MessageRepository {
       clientId: record.clientId,
       number: record.number,
       content: record.content,
-      mediaUrl: record.mediaUrl || undefined,
+      mediaUrl: record.mediaUrl,
       status: record.status,
       error: record.error || undefined,
+      createdAt: record.createdAt,
     }));
   }
 
