@@ -22,6 +22,7 @@ declare global {
   interface MessageBase {
     number: string;
     content: string;
+    mediaUrl?: string;
   }
 
   interface WhatsAppClient {
@@ -40,7 +41,11 @@ declare global {
   interface Message extends MessageBase {
     id: string;
   }
-  interface MessagePayload extends MessageBase {}
+  interface MessagePayload {
+    numbers: string[];
+    content: string;
+    media?: string; // Ubah tipe menjadi string saja untuk URL
+  }
   interface MessageRecord extends Message {
     clientId: string;
     status: MessageStatus;
@@ -60,6 +65,11 @@ declare global {
     interface Request {
       user?: UserPayload;
     }
+  }
+
+  interface CloudinaryUploadResult {
+    public_id: string;
+    secure_url: string;
   }
 }
 

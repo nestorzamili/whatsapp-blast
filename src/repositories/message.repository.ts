@@ -4,18 +4,19 @@ import { cleanPhoneNumber } from "../utils/phone.util";
 export class MessageRepository {
   async createMessages(
     clientId: string,
-    messages: MessagePayload | MessagePayload[]
+    messagePayload: MessagePayload
   ): Promise<MessageRecord[]> {
-    const messageArray = Array.isArray(messages) ? messages : [messages];
+    const { numbers, content, media } = messagePayload;
 
     const result = await prisma.$transaction(
-      messageArray.map((msg) => {
-        const cleanedNumber = cleanPhoneNumber(msg.number);
+      numbers.map((number) => {
+        const cleanedNumber = cleanPhoneNumber(number);
         return prisma.message.create({
           data: {
             clientId,
             number: cleanedNumber,
-            content: msg.content,
+            content,
+            mediaUrl: media, // media sekarang adalah string URL
             status: "PENDING",
             createdAt: new Date(),
           },
@@ -24,8 +25,13 @@ export class MessageRepository {
     );
 
     return result.map((record) => ({
-      ...record,
-      error: record.error ?? undefined,
+      id: record.id,
+      clientId: record.clientId,
+      number: record.number,
+      content: record.content,
+      mediaUrl: record.mediaUrl || undefined,
+      status: record.status,
+      error: record.error || undefined,
     }));
   }
 

@@ -5,8 +5,12 @@ import logger from "../config/logger";
 import messageRepository from "../repositories/message.repository";
 import { MessageStatus } from "@prisma/client";
 import { BatchProcessor } from "../services/batch-processor.service";
+import { uploadToCloudinary, getOptimizedUrl } from "../utils/cloudinary.util";
+import multer from "multer";
 
 const activeClients: Map<string, WhatsAppService> = new Map();
+
+const upload = multer().single("media");
 
 export const initializeClient: RequestHandler = async (
   req: Request,
@@ -43,7 +47,7 @@ export const initializeClient: RequestHandler = async (
       }
 
       instance?.removeAllListeners();
-      instance?.handleLogout(); // Changed from destroy()
+      instance?.handleLogout();
       activeClients.delete(client.id);
     }
 
@@ -71,6 +75,13 @@ export const sendBatchMessages: RequestHandler = async (
   res: Response
 ): Promise<void> => {
   try {
+    await new Promise((resolve, reject) => {
+      upload(req, res, (err) => {
+        if (err) reject(err);
+        resolve(undefined);
+      });
+    });
+
     const userId = req.user?.id;
     if (!userId) {
       res.status(401).json({ success: false, message: "Unauthorized" });
@@ -89,17 +100,25 @@ export const sendBatchMessages: RequestHandler = async (
       return;
     }
 
-    const messages = req.body.messages as MessagePayload[];
-    if (!Array.isArray(messages) || messages.length === 0) {
+    const numbers = req.body.numbers?.split(",").filter(Boolean) || [];
+    const content = req.body.content;
+    const media = req.file ? req.file.buffer : req.body.media; // Single media field
+
+    if (numbers.length === 0 || !content) {
+      logger.error(
+        "Invalid format: numbers array is required and content cannot be empty"
+      );
       res.status(400).json({
         success: false,
-        message: "Invalid messages format or empty array",
+        message:
+          "Invalid format: numbers array is required and content cannot be empty",
       });
       return;
     }
 
     const whatsappInstance = activeClients.get(existingClient.id);
     if (!whatsappInstance) {
+      logger.error("WhatsApp client not initialized");
       res.status(400).json({
         success: false,
         message: "WhatsApp client not initialized",
@@ -107,9 +126,40 @@ export const sendBatchMessages: RequestHandler = async (
       return;
     }
 
+    let cloudinaryUrl: string | undefined;
+
+    if (media) {
+      try {
+        if (Buffer.isBuffer(media)) {
+          // Handle file upload
+          const uploadResult = await uploadToCloudinary(media);
+          cloudinaryUrl = getOptimizedUrl(uploadResult.public_id);
+        } else if (typeof media === "string") {
+          // Handle URL
+          const response = await fetch(media);
+          if (!response.ok) throw new Error("Failed to fetch media from URL");
+          const buffer = Buffer.from(await response.arrayBuffer());
+          const uploadResult = await uploadToCloudinary(buffer);
+          cloudinaryUrl = getOptimizedUrl(uploadResult.public_id);
+        }
+      } catch (error) {
+        logger.error("Failed to process media:", error);
+        res.status(400).json({
+          success: false,
+          message: "Failed to process media",
+          error: error,
+        });
+        return;
+      }
+    }
+
     const messageRecords = await messageRepository.createMessages(
       existingClient.id,
-      messages
+      {
+        numbers,
+        content,
+        media: cloudinaryUrl, // Langsung kirim URL string
+      }
     );
 
     const batchProcessor = new BatchProcessor(whatsappInstance);
@@ -126,7 +176,7 @@ export const sendBatchMessages: RequestHandler = async (
 
     res.status(200).json({
       success: true,
-      message: `Processing ${messages.length} messages`,
+      message: `Processing messages for ${numbers.length} recipients`,
       messageIds: messageRecords.map((m) => m.id),
     });
   } catch (error: any) {

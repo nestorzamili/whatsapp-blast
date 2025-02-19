@@ -1,4 +1,4 @@
-import { Client, LocalAuth } from "whatsapp-web.js";
+import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
 import prisma from "../config/db";
 import logger from "../config/logger";
 import qrcode from "qrcode-terminal";
@@ -211,7 +211,11 @@ export class WhatsAppService extends EventEmitter {
     }
   }
 
-  async sendMessage(number: string, content: string): Promise<void> {
+  async sendMessage(
+    number: string,
+    content: string,
+    mediaUrl?: string
+  ): Promise<void> {
     this.resetIdleTimer();
     const whatsappNumber = formatToWhatsAppNumber(number);
 
@@ -220,7 +224,20 @@ export class WhatsAppService extends EventEmitter {
       throw new Error("Number not registered on WhatsApp");
     }
 
-    await this.client.sendMessage(whatsappNumber, content);
+    if (mediaUrl) {
+      try {
+        const media = await MessageMedia.fromUrl(mediaUrl, {
+          unsafeMime: true,
+        });
+        await this.client.sendMessage(whatsappNumber, media, {
+          caption: content,
+        });
+      } catch (error) {
+        throw new Error(`Failed to send media: ${error}`);
+      }
+    } else {
+      await this.client.sendMessage(whatsappNumber, content);
+    }
   }
 
   async validateNumber(number: string): Promise<boolean> {
