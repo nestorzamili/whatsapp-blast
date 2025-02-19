@@ -122,7 +122,7 @@ export class WhatsAppService extends EventEmitter {
         where: { id: this.clientId },
         data: { lastActive: new Date() },
       })
-      .catch((err) => {
+      .catch((err: Error) => {
         logger.error("Failed to update lastActive timestamp:", err);
       });
   }

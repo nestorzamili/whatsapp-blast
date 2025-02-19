@@ -1,5 +1,6 @@
 import prisma from "../config/db";
 import { cleanPhoneNumber } from "../utils/phone.util";
+import { Message } from "@prisma/client";
 
 export class MessageRepository {
   async createMessages(
@@ -24,7 +25,7 @@ export class MessageRepository {
       })
     );
 
-    return result.map((record) => ({
+    return result.map((record: Message) => ({
       id: record.id,
       clientId: record.clientId,
       number: record.number,
