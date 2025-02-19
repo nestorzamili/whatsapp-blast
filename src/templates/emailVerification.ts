@@ -93,7 +93,7 @@ export const emailVerification = ({
 <body>
   <div class="container">
     <div class="header">
-      <img src="https://res.cloudinary.com/navindo/image/upload/f_auto/t_wa-blast/v1739636120/wa-logo_nze8v4.png" alt="Company Logo">
+      <img src="https://res.cloudinary.com/samunu/image/upload/t_wa-blast/wa-logo_nze8v4.png" alt="Company Logo">
     </div>
     <div class="content">
       <h1>${title}</h1>
