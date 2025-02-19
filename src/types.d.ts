@@ -1,3 +1,16 @@
+export interface UserPayload {
+  id: string;
+  role: string;
+  name: string;
+  email: string;
+}
+
+export interface VerificationResult {
+  isValid: boolean;
+  payload: UserPayload | null;
+  error?: string;
+}
+
 declare global {
   type ClientStatus = "INITIALIZING" | "CONNECTED" | "DISCONNECTED" | "IDLE";
   type MessageStatus = "PENDING" | "SENT" | "FAILED";
@@ -62,45 +75,5 @@ declare global {
   interface FileSystemError extends Error {
     code?: string;
   }
-
-  interface UserPayload {
-    id: string;
-    role: string;
-    name: string;
-    email: string;
-  }
-
-  interface VerificationResult {
-    isValid: boolean;
-    payload: UserPayload | null;
-    error?: string;
-  }
 }
-
-// Add module declarations
-declare module "cors" {
-  import { RequestHandler } from "express";
-  function cors(): RequestHandler;
-  export = cors;
-}
-
-declare module "morgan" {
-  import { RequestHandler } from "express";
-  function morgan(format: string, options?: any): RequestHandler;
-  export = morgan;
-}
-
-declare module "jsonwebtoken" {
-  export function sign(payload: any, secret: string, options?: any): string;
-  export function verify(token: string, secret: string): any;
-}
-
-declare module "nodemailer" {
-  export function createTransport(config: any): any;
-}
-
-declare module "qrcode-terminal" {
-  export function generate(text: string, options?: { small: boolean }): void;
-}
-
 export {};

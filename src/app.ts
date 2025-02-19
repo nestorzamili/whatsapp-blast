@@ -18,6 +18,10 @@ app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get("/", (req, res) => {
+  res.json({ message: "API is running" });
+});
+
 // Routes
 app.use("/auth", authRoutes);
 app.use("/whatsapp", whatsappRoutes);
