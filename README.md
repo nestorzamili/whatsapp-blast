@@ -1,6 +1,6 @@
 
 ```
-whatsapp-bulk
+whatsapp-blast
 ├─ package-lock.json
 ├─ package.json
 ├─ prisma
@@ -17,7 +17,8 @@ whatsapp-bulk
 │  │  └─ rateLimiter.ts
 │  ├─ controllers
 │  │  ├─ auth.controller.ts
-│  │  └─ whatsapp.controller.ts
+│  │  ├─ client.controller.ts
+│  │  └─ message.controller.ts
 │  ├─ middleware
 │  │  ├─ auth.middleware.ts
 │  │  └─ morgan.middleware.ts
@@ -36,6 +37,7 @@ whatsapp-bulk
 │  │  └─ emailVerification.ts
 │  ├─ types.d.ts
 │  └─ utils
+│     ├─ cloudinary.util.ts
 │     └─ phone.util.ts
 └─ tsconfig.json
 

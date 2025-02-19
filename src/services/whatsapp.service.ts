@@ -7,7 +7,6 @@ import EventEmitter from "events";
 import { formatToWhatsAppNumber } from "../utils/phone.util";
 import fs from "fs/promises";
 import path from "path";
-import { FileSystemError } from "../types";
 
 export class WhatsAppService extends EventEmitter {
   private client: Client;

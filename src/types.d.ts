@@ -1,20 +1,3 @@
-export interface UserPayload {
-  id: string;
-  role: string;
-  name: string;
-  email: string;
-}
-
-export interface VerificationResult {
-  isValid: boolean;
-  payload: UserPayload | null;
-  error?: string;
-}
-
-export interface FileSystemError extends Error {
-  code?: string;
-}
-
 declare global {
   type ClientStatus = "INITIALIZING" | "CONNECTED" | "DISCONNECTED" | "IDLE";
   type MessageStatus = "PENDING" | "SENT" | "FAILED";
@@ -70,6 +53,23 @@ declare global {
   interface CloudinaryUploadResult {
     public_id: string;
     secure_url: string;
+  }
+
+  interface FileSystemError extends Error {
+    code?: string;
+  }
+
+  interface UserPayload {
+    id: string;
+    role: string;
+    name: string;
+    email: string;
+  }
+
+  interface VerificationResult {
+    isValid: boolean;
+    payload: UserPayload | null;
+    error?: string;
   }
 }
 

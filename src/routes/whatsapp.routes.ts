@@ -1,12 +1,14 @@
 import express from "express";
 import {
-  initializeClient,
-  sendBatchMessages,
-  logoutClient,
   getClientStatus,
-  getMessages,
+  initializeClient,
+  logoutClient,
+} from "../controllers/client.controller";
+import {
   getMessageStatus,
-} from "../controllers/whatsapp.controller";
+  getMessages,
+  sendBatchMessages,
+} from "../controllers/message.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = express.Router();

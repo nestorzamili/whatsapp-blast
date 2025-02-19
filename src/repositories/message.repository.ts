@@ -16,7 +16,7 @@ export class MessageRepository {
             clientId,
             number: cleanedNumber,
             content,
-            mediaUrl: media, // media sekarang adalah string URL
+            mediaUrl: media,
             status: "PENDING",
             createdAt: new Date(),
           },
