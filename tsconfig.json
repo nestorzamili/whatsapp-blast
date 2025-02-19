@@ -10,7 +10,6 @@
     "typeRoots": ["./src/types", "./node_modules/@types"],
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node", "express", "cors", "jsonwebtoken", "nodemailer", "morgan", "qrcode-terminal"],
   },
   "include": ["src/**/*"]
 }
