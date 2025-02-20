@@ -38,19 +38,22 @@ export class MessageService extends EventEmitter {
       throw new Error("Number not registered on WhatsApp");
     }
 
+    // Ensure content is a single string
+    const messageContent = content.toString();
+
     if (mediaUrl) {
       try {
         const media = await MessageMedia.fromUrl(mediaUrl, {
           unsafeMime: true,
         });
         await this.client.sendMessage(whatsappNumber, media, {
-          caption: content,
+          caption: messageContent,
         });
       } catch (error) {
         throw new Error(`Failed to send media: ${error}`);
       }
     } else {
-      await this.client.sendMessage(whatsappNumber, content);
+      await this.client.sendMessage(whatsappNumber, messageContent);
     }
   }
 
