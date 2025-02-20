@@ -12,16 +12,12 @@ import {
 
 const router = express.Router();
 
-router.post("/register", register);
 router.post("/login", login);
-router.post("/refresh-token", refreshToken);
-router.post(
-  "/request-email-verification",
-  authLimiter,
-  requestEmailVerification
-);
-router.get("/verify-email/:token", verifyEmail);
+router.post("/register", register);
+router.post("/request-email-verification", authLimiter, requestEmailVerification);
 router.post("/request-password-reset", authLimiter, requestPasswordReset);
+router.get("/verify-email", verifyEmail);
 router.post("/reset-password", resetPassword);
+router.post("/refresh-token", refreshToken);
 
 export default router;

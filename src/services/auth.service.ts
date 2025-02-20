@@ -6,7 +6,7 @@ import {
   generateVerificationToken,
   verifyRefreshToken,
 } from "../config/jwt";
-import { sendVerificationEmail, sendPasswordResetEmail } from "./email.service";
+import { sendVerificationEmail, sendPasswordReset } from "./email.service";
 
 export class AuthService {
   async register(name: string, email: string, password: string) {
@@ -26,7 +26,7 @@ export class AuthService {
         password: hashedPassword,
         role: "user",
         verificationToken,
-        verifyExpires: new Date(Date.now() + 15 * 60 * 1000),
+        verifyExpires: new Date(Date.now() + 60 * 60 * 1000),
       },
     });
 
@@ -87,7 +87,7 @@ export class AuthService {
       where: { email },
       data: {
         verificationToken: token,
-        verifyExpires: new Date(Date.now() + 15 * 60 * 1000),
+        verifyExpires: new Date(Date.now() + 60 * 60 * 1000),
       },
     });
 
@@ -128,11 +128,11 @@ export class AuthService {
       where: { email },
       data: {
         resetToken,
-        resetTokenExpires: new Date(Date.now() + 15 * 60 * 1000),
+        resetTokenExpires: new Date(Date.now() + 60 * 60 * 1000),
       },
     });
 
-    await sendPasswordResetEmail(email, resetToken);
+    await sendPasswordReset(email, resetToken);
   }
 
   async resetPassword(token: string, newPassword: string) {

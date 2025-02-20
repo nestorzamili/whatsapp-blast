@@ -8,7 +8,7 @@ import clientService from "../services/client.service";
 
 const upload = multer().single("media");
 
-export const sendBatchMessages: RequestHandler = async (
+export const sendMessages: RequestHandler = async (
   req: Request,
   res: Response
 ): Promise<void> => {
@@ -43,22 +43,15 @@ export const sendBatchMessages: RequestHandler = async (
     const media = req.file ? req.file.buffer : req.body.media;
 
     if (numbers.length === 0 || !content) {
-      logger.error(
-        "Invalid format: numbers array is required and content cannot be empty"
-      );
       res.status(400).json({
         success: false,
-        message:
-          "Invalid format: numbers array is required and content cannot be empty",
+        message: "Numbers array and content are required",
       });
       return;
     }
 
-    const whatsappInstance = clientService.getWhatsAppInstance(
-      existingClient.id
-    );
+    const whatsappInstance = clientService.getWhatsAppInstance(existingClient.id);
     if (!whatsappInstance) {
-      logger.error("WhatsApp client not initialized");
       res.status(400).json({
         success: false,
         message: "WhatsApp client not initialized",
@@ -84,7 +77,6 @@ export const sendBatchMessages: RequestHandler = async (
         res.status(400).json({
           success: false,
           message: "Failed to process media",
-          error: error,
         });
         return;
       }
@@ -101,9 +93,7 @@ export const sendBatchMessages: RequestHandler = async (
 
     whatsappInstance.on("progress", (progress: BatchProgress) => {
       logger.info(
-        `Batch ${progress.currentBatch}/${progress.totalBatches} completed. ` +
-          `Processed: ${progress.processed}/${progress.total} messages ` +
-          `(Success: ${progress.successful}, Failed: ${progress.failed})`
+        `Progress: ${progress.processed}/${progress.total} (Success: ${progress.successful}, Failed: ${progress.failed})`
       );
     });
 
@@ -113,11 +103,11 @@ export const sendBatchMessages: RequestHandler = async (
 
     res.status(200).json({
       success: true,
-      message: `Processing messages for ${numbers.length} recipients`,
+      message: `Processing ${numbers.length} messages`,
       messageIds: messageRecords.map((m) => m.id),
     });
   } catch (error: any) {
-    logger.error(`Send batch messages error: ${error.message}`);
+    logger.error(`Send messages error: ${error.message}`);
     res.status(500).json({
       success: false,
       message: "Failed to send messages",
@@ -188,49 +178,6 @@ export const getMessages: RequestHandler = async (
     res.status(500).json({
       success: false,
       message: "Failed to get messages",
-      error: error.message,
-    });
-  }
-};
-
-export const getMessageStatus: RequestHandler = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(401).json({ success: false, message: "Unauthorized" });
-      return;
-    }
-
-    const messageId = req.params.id;
-    const message = await prisma.message.findFirst({
-      where: {
-        id: messageId,
-        client: {
-          userId,
-        },
-      },
-    });
-
-    if (!message) {
-      res.status(404).json({
-        success: false,
-        message: "Message not found",
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      data: message,
-    });
-  } catch (error: any) {
-    logger.error(`Get message status error: ${error.message}`);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get message status",
       error: error.message,
     });
   }

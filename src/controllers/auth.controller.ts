@@ -79,7 +79,6 @@ export const requestEmailVerification = async (
 
   try {
     await authService.requestEmailVerification(email);
-    logger.info("Verification email sent");
     res.json({ message: "Verification email sent" });
   } catch (error: any) {
     logger.error(error.message);
@@ -91,7 +90,7 @@ export const verifyEmail = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { token } = req.params;
+  const token = req.query.token as string;
 
   if (!token) {
     logger.error("Token is required");
@@ -123,8 +122,7 @@ export const requestPasswordReset = async (
 
   try {
     await authService.requestPasswordReset(email);
-    logger.info("Password reset email sent");
-    res.json({ message: "Password reset email sent" });
+    res.json({ message: "Password reset mail sent" });
   } catch (error: any) {
     logger.error(error.message);
     res.status(400).json({ message: error.message });

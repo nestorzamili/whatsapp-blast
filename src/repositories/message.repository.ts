@@ -16,7 +16,7 @@ export class MessageRepository {
             clientId,
             number: cleanedNumber,
             content,
-            mediaUrl: media || null, // Convert undefined to null
+            mediaUrl: media || null,
             status: "PENDING",
             createdAt: new Date(),
           },

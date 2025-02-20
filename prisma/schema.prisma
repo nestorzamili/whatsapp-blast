@@ -52,8 +52,8 @@ model Message {
 enum ClientStatus {
   INITIALIZING
   CONNECTED
-  IDLE
   DISCONNECTED
+  LOGOUT
 }
 
 enum MessageStatus {

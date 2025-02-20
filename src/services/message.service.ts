@@ -5,7 +5,7 @@ import logger from "../config/logger";
 import EventEmitter from "events";
 import messageRepository from "../repositories/message.repository";
 
-export class WhatsAppService extends EventEmitter {
+export class MessageService extends EventEmitter {
   private client: Client;
   private readonly BATCH_SIZE = 20;
   private readonly DELAY_BETWEEN_BATCHES = 5000;
@@ -149,4 +149,4 @@ export class WhatsAppService extends EventEmitter {
   }
 }
 
-export default WhatsAppService;
+export default MessageService;

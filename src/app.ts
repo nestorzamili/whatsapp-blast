@@ -4,7 +4,8 @@ import helmet from "helmet";
 import morganMiddleware from "./middleware/morgan.middleware";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes";
-import whatsappRoutes from "./routes/whatsapp.routes";
+import clientRoute from "./routes/client.routes";
+import messageRoute from "./routes/message.routes";
 import logger from "./config/logger";
 
 dotenv.config();
@@ -24,7 +25,8 @@ app.get("/", (req, res) => {
 
 // Routes
 app.use("/auth", authRoutes);
-app.use("/whatsapp", whatsappRoutes);
+app.use("/client", clientRoute);
+app.use("/message", messageRoute);
 
 // Error handler
 app.use(

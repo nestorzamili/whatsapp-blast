@@ -12,7 +12,7 @@ export interface VerificationResult {
 }
 
 declare global {
-  type ClientStatus = "INITIALIZING" | "CONNECTED" | "DISCONNECTED" | "IDLE";
+  type ClientStatus = "INITIALIZING" | "CONNECTED" | "DISCONNECTED" | "LOGOUT";
   type MessageStatus = "PENDING" | "SENT" | "FAILED";
 
   interface MessageBase {

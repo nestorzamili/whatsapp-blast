@@ -4,18 +4,18 @@ import logger from "../config/logger";
 
 export const sendVerificationEmail = async (email: string, token: string) => {
   try {
-    const verifyLink = `${process.env.BACKEND_URL}/auth/verify-email/${token}`;
+    const verifyLink = `${process.env.BACKEND_URL}/auth/verify-email?token=${token}`;
     const htmlContent = emailVerification({
       title: "Verify Your Email",
       message: "Please click the button below to verify your email address.",
       buttonText: "Verify Email",
       buttonLink: verifyLink,
       message2:
-        "If you did not create an account, no further action is required.",
+        "If you did not create an account, no further action is required. The link will expire in 1 hour.",
     });
 
     const info = await transporter.sendMail({
-      from: `"WhatsApp Blast" <${process.env.EMAIL_USER}>`,
+      from: process.env.EMAIL_USER,
       to: email,
       subject: "Email Verification",
       html: htmlContent,
@@ -29,7 +29,7 @@ export const sendVerificationEmail = async (email: string, token: string) => {
   }
 };
 
-export const sendPasswordResetEmail = async (email: string, token: string) => {
+export const sendPasswordReset = async (email: string, token: string) => {
   try {
     const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${token}`;
     const htmlContent = emailVerification({
@@ -38,11 +38,11 @@ export const sendPasswordResetEmail = async (email: string, token: string) => {
       buttonText: "Reset Password",
       buttonLink: resetLink,
       message2:
-        "If you didn't request a password reset, you can ignore this email.",
+        "If you didn't request a password reset, you can ignore this email. The link will expire in 1 hour.",
     });
 
     const info = await transporter.sendMail({
-      from: `"WhatsApp Blast" <${process.env.EMAIL_USER}>`,
+      from: process.env.EMAIL_USER,
       to: email,
       subject: "Password Reset",
       html: htmlContent,
