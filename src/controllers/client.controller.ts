@@ -1,9 +1,7 @@
 import { Request, Response, RequestHandler } from "express";
 import prisma from "../config/db";
 import logger from "../config/logger";
-import { WhatsAppService } from "../services/whatsapp.service";
-
-const activeClients: Map<string, WhatsAppService> = new Map();
+import clientService from "../services/client.service";
 
 export const initializeClient: RequestHandler = async (
   req: Request,
@@ -16,42 +14,12 @@ export const initializeClient: RequestHandler = async (
       return;
     }
 
-    let client = await prisma.client.findFirst({ where: { userId } });
-    if (!client) {
-      client = await prisma.client.create({
-        data: {
-          userId,
-          status: "INITIALIZING",
-          lastActive: new Date(),
-        },
-      });
-    }
-
-    if (activeClients.has(client.id)) {
-      const instance = activeClients.get(client.id);
-      const state = await instance?.getState();
-
-      if (state === "CONNECTED") {
-        res.status(400).json({
-          success: false,
-          message: "WhatsApp client already connected",
-        });
-        return;
-      }
-
-      instance?.removeAllListeners();
-      instance?.handleLogout();
-      activeClients.delete(client.id);
-    }
-
-    const whatsappInstance = new WhatsAppService(userId, client.id);
-    activeClients.set(client.id, whatsappInstance);
-    await whatsappInstance.initialize();
+    const clientId = await clientService.initializeClient(userId);
 
     res.status(200).json({
       success: true,
       message: "WhatsApp client initialization started",
-      clientId: client.id,
+      clientId,
     });
   } catch (error: any) {
     logger.error(`Initialize client error: ${error.message}`);
@@ -74,23 +42,7 @@ export const logoutClient: RequestHandler = async (
       return;
     }
 
-    const existingClient = await prisma.client.findFirst({
-      where: { userId },
-    });
-
-    if (!existingClient) {
-      res.status(404).json({
-        success: false,
-        message: "Client not found",
-      });
-      return;
-    }
-
-    const whatsappInstance = activeClients.get(existingClient.id);
-    if (whatsappInstance) {
-      whatsappInstance.handleLogout();
-      activeClients.delete(existingClient.id);
-    }
+    await clientService.logoutClient(userId);
 
     res.status(200).json({
       success: true,

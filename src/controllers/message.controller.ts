@@ -1,13 +1,10 @@
 import { Request, Response, RequestHandler } from "express";
-import { WhatsAppService } from "../services/whatsapp.service";
 import prisma from "../config/db";
 import logger from "../config/logger";
 import messageRepository from "../repositories/message.repository";
-import { BatchProcessor } from "../services/batch-processor.service";
 import { uploadToCloudinary, getOptimizedUrl } from "../utils/cloudinary.util";
 import multer from "multer";
-
-const activeClients: Map<string, WhatsAppService> = new Map();
+import clientService from "../services/client.service";
 
 const upload = multer().single("media");
 
@@ -43,7 +40,7 @@ export const sendBatchMessages: RequestHandler = async (
 
     const numbers = req.body.numbers?.split(",").filter(Boolean) || [];
     const content = req.body.content;
-    const media = req.file ? req.file.buffer : req.body.media; // Single media field
+    const media = req.file ? req.file.buffer : req.body.media;
 
     if (numbers.length === 0 || !content) {
       logger.error(
@@ -57,7 +54,9 @@ export const sendBatchMessages: RequestHandler = async (
       return;
     }
 
-    const whatsappInstance = activeClients.get(existingClient.id);
+    const whatsappInstance = clientService.getWhatsAppInstance(
+      existingClient.id
+    );
     if (!whatsappInstance) {
       logger.error("WhatsApp client not initialized");
       res.status(400).json({
@@ -68,15 +67,12 @@ export const sendBatchMessages: RequestHandler = async (
     }
 
     let cloudinaryUrl: string | undefined;
-
     if (media) {
       try {
         if (Buffer.isBuffer(media)) {
-          // Handle file upload
           const uploadResult = await uploadToCloudinary(media);
           cloudinaryUrl = getOptimizedUrl(uploadResult.public_id);
         } else if (typeof media === "string") {
-          // Handle URL
           const response = await fetch(media);
           if (!response.ok) throw new Error("Failed to fetch media from URL");
           const buffer = Buffer.from(await response.arrayBuffer());
@@ -99,19 +95,19 @@ export const sendBatchMessages: RequestHandler = async (
       {
         numbers,
         content,
-        media: cloudinaryUrl, // Langsung kirim URL string
+        media: cloudinaryUrl,
       }
     );
 
-    const batchProcessor = new BatchProcessor(whatsappInstance);
-
-    batchProcessor.on("progress", (progress: BatchProgress) => {
+    whatsappInstance.on("progress", (progress: BatchProgress) => {
       logger.info(
-        `Batch ${progress.currentBatch}/${progress.totalBatches} completed. Processed: ${progress.processed}/${progress.total} messages (Success: ${progress.successful}, Failed: ${progress.failed})`
+        `Batch ${progress.currentBatch}/${progress.totalBatches} completed. ` +
+          `Processed: ${progress.processed}/${progress.total} messages ` +
+          `(Success: ${progress.successful}, Failed: ${progress.failed})`
       );
     });
 
-    batchProcessor.processBatch(messageRecords).catch((error) => {
+    whatsappInstance.processBatch(messageRecords).catch((error) => {
       logger.error("Message processing error:", error);
     });
 
