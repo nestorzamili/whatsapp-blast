@@ -6,23 +6,76 @@ import { uploadToCloudinary, getOptimizedUrl } from "../utils/cloudinary.util";
 import multer from "multer";
 import clientService from "../services/client.service";
 
-const upload = multer().single("media");
+const storage = multer.memoryStorage();
+const fileFilter = (req: any, file: Express.Multer.File, cb: Function) => {
+  const allowedMimes = [
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "application/pdf",
+  ];
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Invalid file type. Only images and PDF are allowed."));
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 16 * 1024 * 1024, // 16MB max
+  },
+}).single("media");
 
 export const sendBatchMessages: RequestHandler = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    await new Promise((resolve, reject) => {
+    // Handle multipart form data
+    await new Promise<void>((resolve, reject) => {
       upload(req, res, (err) => {
-        if (err) reject(err);
-        resolve(undefined);
+        if (err instanceof multer.MulterError) {
+          reject(new Error(`Upload error: ${err.message}`));
+        } else if (err) {
+          reject(new Error(err.message));
+        }
+        resolve();
       });
     });
 
     const userId = req.user?.id;
     if (!userId) {
       res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
+
+    // Parse form data
+    const numbers =
+      (req.body.numbers as string)?.split(",").filter(Boolean) || [];
+    const content = String(req.body.content || "").trim();
+    const mediaUrl = req.body.mediaUrl; // Optional URL for media
+
+    let media;
+    if (req.file) {
+      // Handle uploaded file
+      media = req.file.buffer;
+    } else if (mediaUrl) {
+      // Handle media URL
+      media = mediaUrl;
+    }
+
+    if (numbers.length === 0 || !content) {
+      logger.error(
+        "Invalid format: numbers array is required and content cannot be empty"
+      );
+      res.status(400).json({
+        success: false,
+        message:
+          "Invalid format: numbers array is required and content cannot be empty",
+      });
       return;
     }
 
@@ -34,22 +87,6 @@ export const sendBatchMessages: RequestHandler = async (
       res.status(400).json({
         success: false,
         message: "WhatsApp client not connected",
-      });
-      return;
-    }
-
-    const numbers = req.body.numbers?.split(",").filter(Boolean) || [];
-    const content = req.body.content;
-    const media = req.file ? req.file.buffer : req.body.media;
-
-    if (numbers.length === 0 || !content) {
-      logger.error(
-        "Invalid format: numbers array is required and content cannot be empty"
-      );
-      res.status(400).json({
-        success: false,
-        message:
-          "Invalid format: numbers array is required and content cannot be empty",
       });
       return;
     }
