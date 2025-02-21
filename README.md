@@ -6,9 +6,23 @@ A RESTful API service for managing WhatsApp automation using whatsapp-web.js. Bu
 
 - 🔐 Multi-user Authentication & Authorization
 - 📱 WhatsApp Multi-Session Management
+- 💰 Quota Management System
+  - Per-user quota tracking
+  - Real-time quota locking
+  - Automatic refund for failed messages
 - 📨 Batch Message Processing
-- 📊 Real-time Progress Tracking
-- 🖼️ Media Message Support (images, documents)
-- 📝 Message History & Status Tracking
-- ⚡ Rate Limiting & Security Measures
-- 🔄 Automatic Session Recovery
+  - Concurrent batch processing
+  - Automatic retry on failure
+  - Progress tracking per batch
+- 🖼️ Media Message Support
+  - Images and Documents
+  - Cloud storage integration
+  - Automatic optimization
+- 📊 Advanced Monitoring
+  - Message history & status
+  - Delivery tracking
+  - Usage statistics
+- ⚡ Security Features
+  - Rate limiting
+  - Session management
+  - Automatic recovery
