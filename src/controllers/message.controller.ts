@@ -50,7 +50,9 @@ export const sendMessages: RequestHandler = async (
       return;
     }
 
-    const whatsappInstance = clientService.getWhatsAppInstance(existingClient.id);
+    const whatsappInstance = clientService.getWhatsAppInstance(
+      existingClient.id
+    );
     if (!whatsappInstance) {
       res.status(400).json({
         success: false,
@@ -62,21 +64,33 @@ export const sendMessages: RequestHandler = async (
     let cloudinaryUrl: string | undefined;
     if (media) {
       try {
+        let uploadResult;
         if (Buffer.isBuffer(media)) {
-          const uploadResult = await uploadToCloudinary(media);
-          cloudinaryUrl = getOptimizedUrl(uploadResult.public_id);
+          uploadResult = await uploadToCloudinary(
+            media,
+            req.file?.originalname ?? `upload_${Date.now()}`
+          );
         } else if (typeof media === "string") {
           const response = await fetch(media);
           if (!response.ok) throw new Error("Failed to fetch media from URL");
           const buffer = Buffer.from(await response.arrayBuffer());
-          const uploadResult = await uploadToCloudinary(buffer);
-          cloudinaryUrl = getOptimizedUrl(uploadResult.public_id);
+          uploadResult = await uploadToCloudinary(
+            buffer,
+            `upload_${Date.now()}`
+          );
+        }
+
+        if (uploadResult) {
+          cloudinaryUrl = getOptimizedUrl(
+            uploadResult.public_id,
+            uploadResult.format
+          );
         }
       } catch (error) {
         logger.error("Failed to process media:", error);
         res.status(400).json({
           success: false,
-          message: "Failed to process media",
+          message: "Failed to process media. " + error,
         });
         return;
       }

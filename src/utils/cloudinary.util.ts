@@ -7,13 +7,28 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "pdf"];
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 export const uploadToCloudinary = async (
-  buffer: Buffer
+  buffer: Buffer,
+  filename: string
 ): Promise<CloudinaryUploadResult> => {
+  if (buffer.byteLength > MAX_FILE_SIZE) {
+    throw new Error("File size exceeds 10MB limit.");
+  }
+
+  const extension = filename.split(".").pop()?.toLowerCase();
+  if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) {
+    throw new Error("Invalid file type. Only images and PDFs are allowed.");
+  }
+
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: "whatsapp-blast",
+        resource_type: "auto",
+        use_filename: true,
       },
       (error, result) => {
         if (error) return reject(error);
@@ -21,6 +36,7 @@ export const uploadToCloudinary = async (
         resolve({
           public_id: result.public_id,
           secure_url: result.secure_url,
+          format: result.format,
         });
       }
     );
@@ -36,9 +52,15 @@ export const uploadToCloudinary = async (
   });
 };
 
-export const getOptimizedUrl = (publicId: string) => {
-  return cloudinary.url(publicId, {
-    fetch_format: "auto",
-    quality: "auto",
-  });
+export const getOptimizedUrl = (publicId: string, format?: string) => {
+  const imageExtensions = ["jpg", "jpeg", "png", "gif", "webp"];
+
+  if (format && imageExtensions.includes(format.toLowerCase())) {
+    return cloudinary.url(publicId, {
+      fetch_format: "auto",
+      quality: "auto",
+    });
+  }
+
+  return cloudinary.url(publicId);
 };

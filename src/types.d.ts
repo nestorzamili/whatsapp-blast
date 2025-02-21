@@ -70,6 +70,7 @@ declare global {
   interface CloudinaryUploadResult {
     public_id: string;
     secure_url: string;
+    format: string;
   }
 
   interface FileSystemError extends Error {
