@@ -107,8 +107,7 @@ export class AuthService {
       throw new Error("Invalid or expired token");
     }
 
-    await QuotaService.addQuota(user.id, 100);
-
+    await QuotaService.createQuota(user.id, 10);
     return await prisma.user.update({
       where: { id: user.id },
       data: {

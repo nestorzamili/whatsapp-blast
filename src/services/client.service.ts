@@ -11,10 +11,13 @@ export class ClientService {
   private inactivityTimers: Map<string, NodeJS.Timeout>;
   private readonly INACTIVITY_TIMEOUT = 60 * 60 * 1000;
   private readonly SESSION_BASE_PATH = "./sessions";
+  private qrGenerationCounts: Map<string, number>;
+  private readonly MAX_QR_GENERATION = 3;
 
   private constructor() {
     this.activeClients = new Map();
     this.inactivityTimers = new Map();
+    this.qrGenerationCounts = new Map();
   }
 
   public static getInstance(): ClientService {
@@ -58,6 +61,14 @@ export class ClientService {
     const Client = whatsappInstance.getClient();
 
     Client.on("qr", (qr) => {
+      const qrCount = this.qrGenerationCounts.get(client.id) || 0;
+      this.qrGenerationCounts.set(client.id, qrCount + 1);
+
+      if (qrCount >= this.MAX_QR_GENERATION) {
+        this.handleQrLimit(client.id);
+        return;
+      }
+
       logger.info(`QR Code generated for client ${client.id}`);
       qrcode.generate(qr, { small: true });
       this.updateClientStatus(client.id, {
@@ -116,6 +127,7 @@ export class ClientService {
 
       await this.updateClientStatus(client.id, {
         status: "DISCONNECTED",
+        lastQrCode: null,
       });
     }
   }
@@ -187,6 +199,18 @@ export class ClientService {
       }
     } catch (error) {
       logger.error(`Error cleaning up session:`, error);
+    }
+  }
+
+  private async handleQrLimit(clientId: string): Promise<void> {
+    const client = await prisma.client.findUnique({ where: { id: clientId } });
+    if (client) {
+      logger.warn(
+        `QR Code generation limit reached for client ${clientId}. Disconnecting...`
+      );
+      await this.disconnectClient(client.userId);
+      await this.cleanupSession(client.userId);
+      this.qrGenerationCounts.delete(clientId);
     }
   }
 

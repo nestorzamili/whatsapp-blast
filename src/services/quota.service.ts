@@ -53,6 +53,7 @@ class QuotaService {
           lockedAmount: 0,
         },
       });
+      logger.info(`Created quota for user: ${userId}`);
     } catch (error: any) {
       logger.error(`Create quota error: ${error.message}`);
       throw error;

@@ -141,21 +141,25 @@ export const getClientQr: RequestHandler = async (
     const client = await prisma.client.findFirst({
       where: { userId },
       select: {
+        status: true,
         lastQrCode: true,
       },
     });
 
-    if (!client || !client.lastQrCode) {
+    if (!client) {
       res.status(404).json({
         success: false,
-        message: "QR code not found",
+        message: "Client not found",
       });
       return;
     }
 
     res.json({
       success: true,
-      data: { qr: client.lastQrCode },
+      data: {
+        status: client.status,
+        qrCode: client.lastQrCode,
+      },
     });
   } catch (error: any) {
     logger.error(`Get client QR error: ${error.message}`);
