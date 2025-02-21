@@ -7,6 +7,7 @@ import {
   verifyRefreshToken,
 } from "../config/jwt";
 import { sendVerificationEmail, sendPasswordReset } from "./email.service";
+import QuotaService from "./quota.service";
 
 export class AuthService {
   async register(name: string, email: string, password: string) {
@@ -105,6 +106,8 @@ export class AuthService {
     if (!user) {
       throw new Error("Invalid or expired token");
     }
+
+    await QuotaService.addQuota(user.id, 100);
 
     return await prisma.user.update({
       where: { id: user.id },

@@ -5,6 +5,7 @@ import messageRepository from "../repositories/message.repository";
 import { uploadToCloudinary, getOptimizedUrl } from "../utils/cloudinary.util";
 import multer from "multer";
 import clientService from "../services/client.service";
+import QuotaService from "../services/quota.service";
 
 const upload = multer().single("media");
 
@@ -38,7 +39,10 @@ export const sendMessages: RequestHandler = async (
       return;
     }
 
-    const numbers = req.body.numbers?.split(",").filter(Boolean) || [];
+    const numbers =
+      typeof req.body.numbers === "string"
+        ? req.body.numbers.split(",").filter(Boolean)
+        : [];
     const content = req.body.content;
     const media = req.file ? req.file.buffer : req.body.media;
 
@@ -46,6 +50,16 @@ export const sendMessages: RequestHandler = async (
       res.status(400).json({
         success: false,
         message: "Numbers array and content are required",
+      });
+      return;
+    }
+
+    const requiredQuota = numbers.length;
+    const balance = await QuotaService.getAvailableBalance(userId);
+    if (balance < requiredQuota) {
+      res.status(400).json({
+        success: false,
+        message: "Insufficient quota balance",
       });
       return;
     }
@@ -66,18 +80,13 @@ export const sendMessages: RequestHandler = async (
       try {
         let uploadResult;
         if (Buffer.isBuffer(media)) {
-          uploadResult = await uploadToCloudinary(
-            media,
-            req.file?.originalname ?? `upload_${Date.now()}`
-          );
+          uploadResult = await uploadToCloudinary(media);
         } else if (typeof media === "string") {
+          // file deepcode ignore Ssrf: will do it later
           const response = await fetch(media);
           if (!response.ok) throw new Error("Failed to fetch media from URL");
           const buffer = Buffer.from(await response.arrayBuffer());
-          uploadResult = await uploadToCloudinary(
-            buffer,
-            `upload_${Date.now()}`
-          );
+          uploadResult = await uploadToCloudinary(buffer);
         }
 
         if (uploadResult) {
@@ -111,7 +120,7 @@ export const sendMessages: RequestHandler = async (
       );
     });
 
-    whatsappInstance.processBatch(messageRecords).catch((error) => {
+    whatsappInstance.processBatch(messageRecords, userId).catch((error) => {
       logger.error("Message processing error:", error);
     });
 

@@ -4,6 +4,7 @@ import { formatToWhatsAppNumber } from "../utils/phone.util";
 import logger from "../config/logger";
 import EventEmitter from "events";
 import messageRepository from "../repositories/message.repository";
+import QuotaService from "./quota.service";
 
 export class MessageService extends EventEmitter {
   private client: Client;
@@ -78,47 +79,65 @@ export class MessageService extends EventEmitter {
     await this.client.logout();
   }
 
-  async processBatch(messages: MessageRecord[]): Promise<void> {
-    const batches = this.splitIntoBatches(messages);
+  async processBatch(messages: MessageRecord[], userId: string): Promise<void> {
+    if (!userId) {
+      throw new Error("userId is required for quota management");
+    }
+
     const totalMessages = messages.length;
     let processedCount = 0;
     let successCount = 0;
     let failedCount = 0;
 
-    for (const batch of batches) {
-      await Promise.all(
-        batch.map(async (message) => {
-          try {
-            await this.sendMessage(
-              message.number,
-              message.content,
-              message.mediaUrl ?? undefined
-            );
-            await messageRepository.updateMessageStatus(message.id, "SENT");
-            successCount++;
-          } catch (error: any) {
-            await messageRepository.updateMessageStatus(
-              message.id,
-              "FAILED",
-              error.message
-            );
-            failedCount++;
-          }
-          processedCount++;
-        })
+    try {
+      logger.info(
+        `Reserving quota for ${totalMessages} messages - UserId: ${userId}`
       );
+      await QuotaService.reserveQuota(userId, totalMessages);
 
-      this.emitProgress(
-        totalMessages,
-        processedCount,
-        successCount,
-        failedCount,
-        batches.length
-      );
+      const batches = this.splitIntoBatches(messages);
+      for (const batch of batches) {
+        await Promise.all(
+          batch.map(async (message) => {
+            try {
+              await this.sendMessage(
+                message.number,
+                message.content,
+                message.mediaUrl ?? undefined
+              );
+              await messageRepository.updateMessageStatus(message.id, "SENT");
+              successCount++;
+            } catch (error: any) {
+              await messageRepository.updateMessageStatus(
+                message.id,
+                "FAILED",
+                error.message
+              );
+              failedCount++;
+            }
+            processedCount++;
+          })
+        );
 
-      if (batches.indexOf(batch) < batches.length - 1) {
-        await this.delay(this.DELAY_BETWEEN_BATCHES);
+        this.emitProgress(
+          totalMessages,
+          processedCount,
+          successCount,
+          failedCount,
+          batches.length
+        );
+
+        if (batches.indexOf(batch) < batches.length - 1) {
+          await this.delay(this.DELAY_BETWEEN_BATCHES);
+        }
       }
+
+      await QuotaService.finalizeQuotaUsage(userId, successCount);
+    } catch (error) {
+      if (processedCount > 0) {
+        await QuotaService.finalizeQuotaUsage(userId, successCount);
+      }
+      throw error;
     }
   }
 

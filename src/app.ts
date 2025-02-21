@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes";
 import clientRoute from "./routes/client.routes";
 import messageRoute from "./routes/message.routes";
+import quotaRoute from "./routes/quota.routes";
 import logger from "./config/logger";
 
 dotenv.config();
@@ -27,6 +28,7 @@ app.get("/", (req, res) => {
 app.use("/auth", authRoutes);
 app.use("/client", clientRoute);
 app.use("/message", messageRoute);
+app.use("/quota", quotaRoute);
 
 // Error handler
 app.use(

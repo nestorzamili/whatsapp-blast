@@ -7,20 +7,13 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "pdf"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 export const uploadToCloudinary = async (
-  buffer: Buffer,
-  filename: string
+  buffer: Buffer
 ): Promise<CloudinaryUploadResult> => {
   if (buffer.byteLength > MAX_FILE_SIZE) {
     throw new Error("File size exceeds 10MB limit.");
-  }
-
-  const extension = filename.split(".").pop()?.toLowerCase();
-  if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) {
-    throw new Error("Invalid file type. Only images and PDFs are allowed.");
   }
 
   return new Promise((resolve, reject) => {
@@ -42,9 +35,9 @@ export const uploadToCloudinary = async (
     );
 
     const readableStream = new Readable({
-      read() {
-        this.push(buffer);
-        this.push(null);
+      read: () => {
+        readableStream.push(buffer);
+        readableStream.push(null);
       },
     });
 
