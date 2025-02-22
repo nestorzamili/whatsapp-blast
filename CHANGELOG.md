@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.3](https://github.com/nestorzamili/whatsapp-blast/compare/v1.5.2...v1.5.3) (2025-02-22)
+
+
+### Bug Fixes
+
+* update deployment workflows to use latest Docker tag and remove unnecessary triggers ([319db9e](https://github.com/nestorzamili/whatsapp-blast/commit/319db9e0e84c4fd1928fab51c7ef87af9686669a))
+
 ## [1.5.2](https://github.com/nestorzamili/whatsapp-blast/compare/v1.5.1...v1.5.2) (2025-02-22)
 
 
