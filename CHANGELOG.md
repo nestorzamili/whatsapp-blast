@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.5](https://github.com/nestorzamili/whatsapp-blast/compare/v1.5.4...v1.5.5) (2025-02-22)
+
+
+### Chores
+
+* remove puppeteer installation step from Dockerfile ([1311e0b](https://github.com/nestorzamili/whatsapp-blast/commit/1311e0bcf37f0ba4a9ec0e585ef46ca766752c19))
+
 ## [1.5.4](https://github.com/nestorzamili/whatsapp-blast/compare/v1.5.3...v1.5.4) (2025-02-22)
 
 
