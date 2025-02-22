@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.2](https://github.com/nestorzamili/whatsapp-blast/compare/v1.2.1...v1.2.2) (2025-02-22)
+
+
+### Chores
+
+* update Docker workflow to use release-please action ([70579f2](https://github.com/nestorzamili/whatsapp-blast/commit/70579f2920e6692a3425adf0435509b8adb032b2))
+
 ## [1.2.1](https://github.com/nestorzamili/whatsapp-blast/compare/v1.2.0...v1.2.1) (2025-02-22)
 
 
