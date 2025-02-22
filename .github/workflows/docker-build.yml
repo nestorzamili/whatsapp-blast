@@ -1,4 +1,4 @@
-name: Docker Build
+name: Docker Build and Push
 
 on:
   workflow_run:
@@ -10,7 +10,9 @@ on:
 jobs:
   docker:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -20,7 +22,11 @@ jobs:
       - name: Get Latest Tag
         id: get-latest-tag
         run: |
-          echo "LATEST_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          if git describe --tags --abbrev=0 > /dev/null 2>&1; then
+            echo "LATEST_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          else
+            echo "LATEST_TAG=latest" >> $GITHUB_ENV
+          fi
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -36,3 +42,5 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/whatsapp-blast:latest
             ${{ secrets.DOCKER_USERNAME }}/whatsapp-blast:${{ env.LATEST_TAG }}
+          build-args: |
+            GIT_TAG=${{ env.LATEST_TAG }}

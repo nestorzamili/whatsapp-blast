@@ -1,5 +1,6 @@
 import prisma from "../config/db";
 import logger from "../config/logger";
+import { Prisma } from "@prisma/client";
 
 class QuotaService {
   async getAvailableBalance(userId: string): Promise<number> {
@@ -22,7 +23,7 @@ class QuotaService {
 
   async addQuota(userId: string, amount: number): Promise<void> {
     try {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const quota = await tx.quota.findUnique({
           where: { userId },
         });
@@ -62,7 +63,7 @@ class QuotaService {
 
   async reserveQuota(userId: string, amount: number): Promise<void> {
     try {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const quota = await tx.quota.findUnique({
           where: { userId },
           select: { balance: true, lockedAmount: true },
@@ -103,7 +104,7 @@ class QuotaService {
     successCount: number
   ): Promise<void> {
     try {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const quota = await tx.quota.findUnique({
           where: { userId },
           select: { balance: true, lockedAmount: true },
