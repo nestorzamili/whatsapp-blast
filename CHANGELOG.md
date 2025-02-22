@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.1](https://github.com/nestorzamili/whatsapp-blast/compare/v1.5.0...v1.5.1) (2025-02-22)
+
+
+### Bug Fixes
+
+* update SSH keys and user in deployment workflow ([f55f2ba](https://github.com/nestorzamili/whatsapp-blast/commit/f55f2baa385a9024360d7e174f65d171d98f7231))
+
 ## [1.5.0](https://github.com/nestorzamili/whatsapp-blast/compare/v1.4.1...v1.5.0) (2025-02-22)
 
 
