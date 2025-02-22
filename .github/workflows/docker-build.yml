@@ -1,8 +1,9 @@
 name: Build and Push Docker Image
 
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Release Please"]
+    types: [completed]
   workflow_dispatch:
 
 jobs:
@@ -16,12 +17,7 @@ jobs:
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
       - name: Build Docker Image
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/whatsapp-blast:${{ github.event.release.tag_name }} .
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/whatsapp-blast:latest .
 
       - name: Push Docker Image
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/whatsapp-blast:${{ github.event.release.tag_name }}
-
-      - name: Push Latest Tag
-        run: |
-          docker tag ${{ secrets.DOCKER_USERNAME }}/whatsapp-blast:${{ github.event.release.tag_name }} ${{ secrets.DOCKER_USERNAME }}/whatsapp-blast:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/whatsapp-blast:latest
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/whatsapp-blast:latest
