@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.1.4](https://github.com/nestorzamili/whatsapp-blast/compare/v1.1.3...v1.1.4) (2025-02-22)
+
+
+### Bug Fixes
+
+* **client:** prevent multiple initializations for the same client ([451e429](https://github.com/nestorzamili/whatsapp-blast/commit/451e429341372353eeb1b90309789792fbe2a6d9))
+
 ## [1.1.3](https://github.com/nestorzamili/whatsapp-blast/compare/v1.1.2...v1.1.3) (2025-02-22)
 
 
