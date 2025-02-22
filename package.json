@@ -5,8 +5,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "nodemon --ext ts --exec ts-node src/server.ts",
-    "start": "node dist/server.js",
-    "release": "standard-version"
+    "start": "node dist/server.js"
   },
   "keywords": [
     "whatsapp",
@@ -48,7 +47,6 @@
     "@types/nodemailer": "^6.4.17",
     "@types/qrcode-terminal": "^0.12.2",
     "nodemon": "^3.1.9",
-    "standard-version": "^9.5.0",
     "typescript": "^5.7.3"
   }
 }
