@@ -8,5 +8,7 @@
     { "type": "refactor", "section": "Code Refactoring" },
     { "type": "perf", "section": "Performance Improvements" },
     { "type": "test", "section": "Tests" }
-  ]
+  ],
+  "releaseCommitMessageFormat": "chore(release): {{currentTag}}",
+  "preset": "angular"
 }
