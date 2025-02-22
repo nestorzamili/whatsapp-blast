@@ -14,6 +14,22 @@ export const connectClient: RequestHandler = async (
       return;
     }
 
+    const existingClient = await prisma.client.findFirst({
+      where: { userId },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
+    if (existingClient && existingClient.status === "INITIALIZING") {
+      res.status(400).json({
+        success: false,
+        message: "Client is already initializing",
+      });
+      return;
+    }
+
     const clientId = await clientService.connectClient(userId);
 
     res.status(200).json({
