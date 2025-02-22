@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/nestorzamili/whatsapp-blast/compare/v1.1.4...v1.2.0) (2025-02-22)
+
+
+### Features
+
+* add GitHub workflows for Docker image build and deployment ([ca98524](https://github.com/nestorzamili/whatsapp-blast/commit/ca98524880a278288eaa59e5c0a879bfd09d94ea))
+
+
+### Code Refactoring
+
+* rename models to lowercase for consistency ([3157a84](https://github.com/nestorzamili/whatsapp-blast/commit/3157a843104690f83967b49d09d8bb206e8bdc67))
+
 ## [1.1.4](https://github.com/nestorzamili/whatsapp-blast/compare/v1.1.3...v1.1.4) (2025-02-22)
 
 
