@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/nestorzamili/whatsapp-blast/compare/v1.2.3...v1.3.0) (2025-02-22)
+
+
+### Features
+
+* add Docker support with Dockerfile and .dockerignore ([8a4dd34](https://github.com/nestorzamili/whatsapp-blast/commit/8a4dd34e294b84b4871dab1f342870ff6db96fa2))
+
 ## [1.2.3](https://github.com/nestorzamili/whatsapp-blast/compare/v1.2.2...v1.2.3) (2025-02-22)
 
 
