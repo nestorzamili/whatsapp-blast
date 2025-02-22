@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.4](https://github.com/nestorzamili/whatsapp-blast/compare/v1.5.3...v1.5.4) (2025-02-22)
+
+
+### Chores
+
+* remove outdated deployment workflow and update Dockerfile for slim image and Puppeteer dependencies ([d5844bf](https://github.com/nestorzamili/whatsapp-blast/commit/d5844bff2f8dc6c77db005d3f8ad996c60a716ba))
+
 ## [1.5.3](https://github.com/nestorzamili/whatsapp-blast/compare/v1.5.2...v1.5.3) (2025-02-22)
 
 
