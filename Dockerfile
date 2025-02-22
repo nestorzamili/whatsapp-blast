@@ -18,8 +18,6 @@ COPY package*.json ./
 
 RUN npm ci
 
-RUN npx puppeteer install
-
 COPY . .
 
 RUN npm run build
