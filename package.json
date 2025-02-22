@@ -1,6 +1,6 @@
 {
   "name": "whatsapp-blast",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
