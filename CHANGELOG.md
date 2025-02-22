@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.1](https://github.com/nestorzamili/whatsapp-blast/compare/v1.4.0...v1.4.1) (2025-02-22)
+
+
+### Chores
+
+* remove Dockerfile ([a7f4ede](https://github.com/nestorzamili/whatsapp-blast/commit/a7f4edef09930de29f26acae3a1d93d8fdda122d))
+
 ## [1.4.0](https://github.com/nestorzamili/whatsapp-blast/compare/v1.3.0...v1.4.0) (2025-02-22)
 
 
