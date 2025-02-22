@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.1.3](https://github.com/nestorzamili/whatsapp-blast/compare/v1.1.2...v1.1.3) (2025-02-22)
+
+
+### Chores
+
+* add release-please configuration ([283389c](https://github.com/nestorzamili/whatsapp-blast/commit/283389ced725ef6f2be210df99b7e3929cfa0be7))
+* remove standard-version config and dependency ([19b7ef7](https://github.com/nestorzamili/whatsapp-blast/commit/19b7ef715662fc7965e7809bf7773448d73c0e07))
+
 ## [1.1.2](https://github.com/nestorzamili/whatsapp-bulk/compare/v1.1.0...v1.1.2) (2025-02-22)
 
 
