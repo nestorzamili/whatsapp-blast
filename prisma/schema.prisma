@@ -8,7 +8,7 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model User {
+model user {
   id                String    @id @default(uuid())
   email             String    @unique
   password          String
@@ -19,29 +19,29 @@ model User {
   verifyExpires     DateTime?
   resetToken        String?
   resetTokenExpires DateTime?
-  clients           Client[]
-  quota             Quota?
+  clients           client[]
+  quota             quota?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 }
 
-model Client {
+model client {
   id         String       @id @default(uuid())
   userId     String
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       user         @relation(fields: [userId], references: [id], onDelete: Cascade)
   session    String?
   status     ClientStatus @default(INITIALIZING)
   lastActive DateTime?
   lastQrCode String?
-  messages   Message[]
+  messages   message[]
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 }
 
-model Message {
+model message {
   id        String        @id @default(uuid())
   clientId  String
-  client    Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client    client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   number    String
   content   String
   status    MessageStatus @default(PENDING)
@@ -50,10 +50,10 @@ model Message {
   createdAt DateTime      @default(now())
 }
 
-model Quota {
+model quota {
   id           String   @id @default(uuid())
   userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         user     @relation(fields: [userId], references: [id], onDelete: Cascade)
   balance      Int      @default(0)
   lockedAmount Int      @default(0)
   createdAt    DateTime @default(now())
