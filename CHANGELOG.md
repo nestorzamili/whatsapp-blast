@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/nestorzamili/whatsapp-blast/compare/v1.3.0...v1.4.0) (2025-02-22)
+
+
+### Features
+
+* update deployment workflows and improve Docker integration ([02bfa11](https://github.com/nestorzamili/whatsapp-blast/commit/02bfa11ec73a78f9f2c79da92736916945e9b3d0))
+
 ## [1.3.0](https://github.com/nestorzamili/whatsapp-blast/compare/v1.2.3...v1.3.0) (2025-02-22)
 
 
