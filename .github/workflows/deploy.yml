@@ -1,0 +1,26 @@
+name: Deploy to VM
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker Image"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VM
+        run: |
+          ssh -i <(echo "${{ secrets.SSH_PRIVATE_KEY }}") ${{ secrets.VM_HOST }}@${{ secrets.VM_IP }} << 'EOF'
+            docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin <<< "${{ secrets.DOCKER_PASSWORD }}"
+            docker pull ${{ secrets.DOCKER_USERNAME }}/whatsapp-blast:latest
+            
+            docker stop whatsapp-blast || true
+            docker rm whatsapp-blast || true
+
+            docker run -d --name whatsapp-blast --restart unless-stopped \
+              --env-file /home/${{ secrets.VM_HOST }}/whatsapp-blast/.env \
+              -v /home/${{ secrets.VM_HOST }}/whatsapp-blast/sessions:/app/sessions \
+              -p 3000:3000 ${{ secrets.DOCKER_USERNAME }}/whatsapp-blast:latest
+          EOF
