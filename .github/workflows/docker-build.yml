@@ -1,10 +1,10 @@
 name: Docker Build and Push
 
 on:
-  workflow_run:
-    workflows: ["release-please"]
-    types:
-      - completed
+  # workflow_run:
+  #   workflows: ["release-please"]
+  #   types:
+  #     - completed
   workflow_dispatch:
 
 jobs:
