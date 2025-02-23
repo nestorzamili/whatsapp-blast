@@ -56,3 +56,24 @@ export const isAdmin = async (
 
   next();
 };
+
+export const apiKeyMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const apiKey = req.headers["x-api-key"];
+  if (!apiKey) {
+    logger.error("Access denied. No API key provided.");
+    res.status(401).json({ message: "Access denied. No API key provided." });
+    return;
+  }
+
+  if (apiKey !== process.env.API_KEY) {
+    logger.warn("Unauthorized access attempt");
+    res.status(401).json({ message: "Invalid API key" });
+    return;
+  }
+
+  next();
+};

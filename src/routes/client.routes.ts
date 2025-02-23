@@ -6,10 +6,14 @@ import {
   getClientStatus,
   getClientQr,
 } from "../controllers/client.controller";
-import { authMiddleware } from "../middleware/auth.middleware";
+import {
+  authMiddleware,
+  apiKeyMiddleware,
+} from "../middleware/auth.middleware";
 
 const router = express.Router();
 
+router.use(apiKeyMiddleware);
 router.use(authMiddleware);
 
 router.post("/connect", connectClient);

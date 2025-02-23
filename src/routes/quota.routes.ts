@@ -1,10 +1,14 @@
 import express from "express";
 import { addQuota, checkQuota } from "../controllers/quota.controller";
-import { authMiddleware } from "../middleware/auth.middleware";
-import { isAdmin } from "../middleware/auth.middleware";
+import {
+  authMiddleware,
+  isAdmin,
+  apiKeyMiddleware,
+} from "../middleware/auth.middleware";
 
 const router = express.Router();
 
+router.use(apiKeyMiddleware);
 router.use(authMiddleware);
 
 router.post("/add-quota", isAdmin, addQuota);

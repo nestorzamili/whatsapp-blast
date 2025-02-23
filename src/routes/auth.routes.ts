@@ -1,5 +1,6 @@
 import express from "express";
 import { authLimiter } from "../config/rateLimiter";
+import { apiKeyMiddleware } from "../middleware/auth.middleware";
 import {
   register,
   login,
@@ -12,11 +13,13 @@ import {
 
 const router = express.Router();
 
+router.get("/verify-email", verifyEmail);
+
+router.use(apiKeyMiddleware);
 router.post("/login", login);
 router.post("/register", register);
 router.post("/request-email-verification", authLimiter, requestEmailVerification);
 router.post("/request-password-reset", authLimiter, requestPasswordReset);
-router.get("/verify-email", verifyEmail);
 router.post("/reset-password", resetPassword);
 router.post("/refresh-token", refreshToken);
 
