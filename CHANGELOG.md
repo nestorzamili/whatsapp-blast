@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0](https://github.com/nestorzamili/whatsapp-blast/compare/v1.5.5...v2.0.0) (2025-02-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* update environment configuration, logger level, and restructure Dockerfile for multi-stage build; restructure client service and controller
+
+### Features
+
+* add API key middleware for route protection ([98b0a57](https://github.com/nestorzamili/whatsapp-blast/commit/98b0a5777abddb4bfd50e13de4c616b205282a03))
+* restrict add-quota route to admin users ([41ec258](https://github.com/nestorzamili/whatsapp-blast/commit/41ec2584f854d005dcd8f39bf74da9088fd7933d))
+* update environment configuration, logger level, and restructure Dockerfile for multi-stage build; restructure client service and controller ([63a614c](https://github.com/nestorzamili/whatsapp-blast/commit/63a614c6a6d887cb7fd609f1c8585f800395686b))
+
 ## [1.5.5](https://github.com/nestorzamili/whatsapp-blast/compare/v1.5.4...v1.5.5) (2025-02-22)
 
 
