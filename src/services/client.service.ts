@@ -39,6 +39,7 @@ export class ClientService extends EventEmitter {
   private readonly activeClients = new Map<string, Client>();
   private readonly inactivityTimers = new Map<string, NodeJS.Timeout>();
   private readonly qrGenerationCounts = new Map<string, number>();
+  private isCleaningUp = false;
 
   private readonly CONFIG = {
     INACTIVITY_TIMEOUT: 60 * 60 * 1000,
@@ -59,11 +60,31 @@ export class ClientService extends EventEmitter {
   }
 
   private setupCleanupHandlers(): void {
-    process.on("SIGTERM", () => this.cleanup());
-    process.on("SIGINT", () => this.cleanup());
+    process.on("SIGTERM", () => this.handleExit());
+    process.on("SIGINT", () => this.handleExit());
+    process.on("beforeExit", () => this.handleExit());
+    process.on("uncaughtException", (err) => {
+      logger.error("Uncaught Exception: ", err);
+      this.handleExit();
+    });
+  }
+
+  private async cleanupPuppeteer(): Promise<void> {
+    for (const client of this.activeClients.values()) {
+      if (client.pupBrowser) {
+        try {
+          await client.pupBrowser.close();
+        } catch (error) {
+          logger.error("Failed to close Puppeteer browser:", error);
+        }
+      }
+    }
   }
 
   private async cleanup(): Promise<void> {
+    if (this.isCleaningUp) return;
+    this.isCleaningUp = true;
+
     const cleanupPromises = Array.from(this.activeClients.entries()).map(
       async ([clientId, client]) => {
         try {
@@ -77,6 +98,11 @@ export class ClientService extends EventEmitter {
     );
 
     await Promise.allSettled(cleanupPromises);
+    await this.cleanupPuppeteer();
+  }
+
+  private async handleExit(): Promise<void> {
+    await this.cleanup();
     process.exit(0);
   }
 
