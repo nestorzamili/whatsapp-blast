@@ -20,7 +20,7 @@ const logFormat = winston.format.combine(
 );
 
 const logger = winston.createLogger({
-  level: "info",
+  level: "debug",
   format: combine(timestamp({ format: "YYYY-MM-DD HH:mm:ss" }), logFormat),
   transports: [
     new winston.transports.Console({

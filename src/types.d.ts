@@ -12,7 +12,6 @@ export interface VerificationResult {
 }
 
 declare global {
-  type ClientStatus = "INITIALIZING" | "CONNECTED" | "DISCONNECTED" | "LOGOUT";
   type MessageStatus = "PENDING" | "SENT" | "FAILED";
 
   interface MessageBase {
@@ -21,19 +20,6 @@ declare global {
     mediaUrl?: string | null; // Change this to allow null
   }
 
-  interface WhatsAppClient {
-    id: string;
-    userId: string;
-    session?: string | null;
-    status: ClientStatus;
-    lastActive?: Date;
-    lastQrCode?: string | null;
-  }
-
-  interface ClientUpdate
-    extends Partial<
-      Pick<WhatsAppClient, "status" | "session" | "lastActive" | "lastQrCode">
-    > {}
   interface Message extends MessageBase {
     id: string;
     clientId: string;
@@ -44,7 +30,7 @@ declare global {
   interface MessagePayload {
     numbers: string[];
     content: string;
-    media?: string; // Ubah tipe menjadi string saja untuk URL
+    media?: string;
   }
   interface MessageRecord extends Message {
     clientId: string;

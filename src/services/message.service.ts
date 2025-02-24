@@ -1,82 +1,78 @@
-import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
-import { puppeteerConfig } from "../config/puppeteer.config";
+import { MessageMedia } from "whatsapp-web.js";
 import { formatToWhatsAppNumber } from "../utils/phone.util";
 import logger from "../config/logger";
 import EventEmitter from "events";
 import messageRepository from "../repositories/message.repository";
 import QuotaService from "./quota.service";
+import { ClientService } from "./client.service";
 
 export class MessageService extends EventEmitter {
-  private client: Client;
   private readonly BATCH_SIZE = 20;
   private readonly DELAY_BETWEEN_BATCHES = 5000;
-
-  constructor(userId: string, sessionPath: string) {
-    super();
-    this.client = new Client({
-      restartOnAuthFail: true,
-      authStrategy: new LocalAuth({
-        clientId: userId,
-        dataPath: sessionPath,
-      }),
-      puppeteer: puppeteerConfig,
-    });
-  }
-
-  async initialize(): Promise<void> {
-    await this.client.initialize();
-  }
+  private readonly RETRY_DELAY = 3000;
+  private readonly MAX_RETRIES = 3;
+  private readonly PDF_SEND_DELAY = 5000;
 
   async sendMessage(
+    userId: string,
     number: string,
     content: string,
     mediaUrl?: string
   ): Promise<void> {
     const whatsappNumber = formatToWhatsAppNumber(number);
 
-    const isRegistered = await this.validateNumber(whatsappNumber);
+    const isRegistered = await this.validateNumber(userId, whatsappNumber);
     if (!isRegistered) {
       throw new Error("Number not registered on WhatsApp");
     }
 
-    // Ensure content is a single string
     const messageContent = content.toString();
+
+    const client = await ClientService.getInstance().getClient(userId);
+    if (!client) {
+      throw new Error("WhatsApp client not connected");
+    }
 
     if (mediaUrl) {
       try {
         const media = await MessageMedia.fromUrl(mediaUrl, {
           unsafeMime: true,
         });
-        await this.client.sendMessage(whatsappNumber, media, {
-          caption: messageContent,
-        });
+        const isPdf =
+          mediaUrl.toLowerCase().endsWith(".pdf") ||
+          mediaUrl.includes("/pdf/") ||
+          mediaUrl.includes("application/pdf");
+
+        if (isPdf) {
+          await this.sendPdfWithRetry(
+            whatsappNumber,
+            { content: messageContent, media: mediaUrl },
+            client
+          );
+        } else {
+          await client.sendMessage(whatsappNumber, media, {
+            caption: messageContent,
+          });
+        }
       } catch (error) {
         throw new Error(`Failed to send media: ${error}`);
       }
     } else {
-      await this.client.sendMessage(whatsappNumber, messageContent);
+      await client.sendMessage(whatsappNumber, messageContent);
     }
   }
 
-  async validateNumber(number: string): Promise<boolean> {
+  async validateNumber(userId: string, number: string): Promise<boolean> {
     try {
-      return await this.client.isRegisteredUser(number);
+      const client = await ClientService.getInstance().getClient(userId);
+      if (!client) {
+        throw new Error("WhatsApp client not connected");
+      }
+      return await client.isRegisteredUser(number);
     } catch (error) {
       logger.error(`Error validating number ${number}:`, error);
       return false;
     }
-  }
-
-  getClient(): Client {
-    return this.client;
-  }
-
-  async destroy(): Promise<void> {
-    await this.client.destroy();
-  }
-
-  async logout(): Promise<void> {
-    await this.client.logout();
   }
 
   async processBatch(messages: MessageRecord[], userId: string): Promise<void> {
@@ -101,6 +97,7 @@ export class MessageService extends EventEmitter {
           batch.map(async (message) => {
             try {
               await this.sendMessage(
+                userId,
                 message.number,
                 message.content,
                 message.mediaUrl ?? undefined
@@ -168,6 +165,46 @@ export class MessageService extends EventEmitter {
 
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private async sendPdfWithRetry(
+    chatId: string,
+    message: { content: string; media: string },
+    client: any,
+    retryCount = 0
+  ): Promise<boolean> {
+    try {
+      const mediaMessage = await this.createMediaMessage(chatId, message);
+
+      await new Promise((resolve) => setTimeout(resolve, this.PDF_SEND_DELAY));
+
+      await client.sendMessage(chatId, mediaMessage);
+      return true;
+    } catch (error) {
+      logger.error(
+        `Failed to send PDF message (attempt ${retryCount + 1}):`,
+        error
+      );
+
+      if (retryCount < this.MAX_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, this.RETRY_DELAY));
+        return this.sendPdfWithRetry(chatId, message, client, retryCount + 1);
+      }
+
+      return false;
+    }
+  }
+
+  private async createMediaMessage(
+    chatId: string,
+    message: { content: string; media: string }
+  ) {
+    const media = await MessageMedia.fromUrl(message.media);
+    return {
+      media,
+      caption: message.content,
+      sendMediaAsDocument: message.media.toLowerCase().endsWith(".pdf"),
+    };
   }
 }
 

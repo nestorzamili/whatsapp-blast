@@ -1,48 +1,64 @@
-import { Request, Response, RequestHandler } from "express";
+import e, { Request, Response, RequestHandler } from "express";
 import prisma from "../config/db";
 import logger from "../config/logger";
 import clientService from "../services/client.service";
+import { handleResponse, handleAuthError } from "../utils/response.util";
 
 export const connectClient: RequestHandler = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(401).json({ success: false, message: "Unauthorized" });
-      return;
-    }
+  const userId = req.user?.id;
+  if (!userId) return handleAuthError(res);
 
+  try {
     const existingClient = await prisma.client.findFirst({
       where: { userId },
-      select: {
-        id: true,
-        status: true,
-      },
+      select: { id: true, status: true },
     });
 
-    if (existingClient && existingClient.status === "INITIALIZING") {
-      res.status(400).json({
-        success: false,
-        message: "Client is already initializing",
+    if (!existingClient) {
+      const clientId = await clientService.connectClient(userId);
+      return handleResponse(res, 200, {
+        success: true,
+        message: "Initializing new connection",
+        status: "INITIALIZING",
+        clientId,
       });
-      return;
     }
 
-    const clientId = await clientService.connectClient(userId);
+    switch (existingClient.status) {
+      case "INITIALIZING":
+        return handleResponse(res, 200, {
+          success: true,
+          message: "Connection in progress",
+          status: existingClient.status,
+          clientId: existingClient.id,
+        });
 
-    res.status(200).json({
-      success: true,
-      message: "WhatsApp client connection initiated",
-      clientId,
-    });
+      case "CONNECTED":
+        return handleResponse(res, 200, {
+          success: true,
+          message: "Already connected",
+          status: existingClient.status,
+          clientId: existingClient.id,
+        });
+
+      case "DISCONNECTED":
+      case "LOGOUT":
+        await clientService.connectClient(userId);
+        return handleResponse(res, 200, {
+          success: true,
+          message: "Reconnecting...",
+          status: "INITIALIZING",
+          clientId: existingClient.id,
+        });
+    }
   } catch (error: any) {
-    logger.error(`Connect client error: ${error.message}`);
-    res.status(500).json({
+    logger.error(`Connect error: ${error.message}`);
+    handleResponse(res, 500, {
       success: false,
-      message: "Failed to connect WhatsApp client",
-      error: error.message,
+      message: "Connection failed",
     });
   }
 };
@@ -51,25 +67,49 @@ export const disconnectClient: RequestHandler = async (
   req: Request,
   res: Response
 ): Promise<void> => {
+  const userId = req.user?.id;
+  if (!userId) return handleAuthError(res);
+
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(401).json({ success: false, message: "Unauthorized" });
-      return;
+    const existingClient = await prisma.client.findFirst({
+      where: { userId },
+      select: { id: true, status: true },
+    });
+
+    if (!existingClient) {
+      return handleResponse(res, 404, {
+        success: false,
+        message: "Client not found",
+      });
     }
 
-    await clientService.disconnectClient(userId);
+    switch (existingClient.status) {
+      case "CONNECTED":
+      case "INITIALIZING":
+      case "DISCONNECTED":
+        await clientService.disconnectClient(userId);
+        const updatedClient = await prisma.client.findFirst({
+          where: { userId },
+          select: { status: true },
+        });
+        return handleResponse(res, 200, {
+          success: true,
+          message: "Disconnecting...",
+          status: updatedClient?.status,
+        });
 
-    res.status(200).json({
-      success: true,
-      message: "WhatsApp client disconnected",
-    });
+      case "LOGOUT":
+        return handleResponse(res, 200, {
+          success: true,
+          message: "Already disconnected",
+          status: existingClient.status,
+        });
+    }
   } catch (error: any) {
-    logger.error(`Disconnect client error: ${error.message}`);
-    res.status(500).json({
+    logger.error(`Disconnect error: ${error.message}`);
+    handleResponse(res, 500, {
       success: false,
-      message: "Failed to disconnect WhatsApp client",
-      error: error.message,
+      message: "Failed to disconnect",
     });
   }
 };
@@ -78,25 +118,45 @@ export const deleteDevice: RequestHandler = async (
   req: Request,
   res: Response
 ): Promise<void> => {
+  const userId = req.user?.id;
+  if (!userId) return handleAuthError(res);
+
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(401).json({ success: false, message: "Unauthorized" });
-      return;
+    const existingClient = await prisma.client.findFirst({
+      where: { userId },
+      select: { id: true, status: true },
+    });
+
+    if (!existingClient) {
+      return handleResponse(res, 404, {
+        success: false,
+        message: "Client not found",
+      });
     }
 
-    await clientService.deleteDevice(userId);
+    switch (existingClient.status) {
+      case "CONNECTED":
+      case "INITIALIZING":
+      case "DISCONNECTED":
+        await clientService.deleteDevice(userId);
+        return handleResponse(res, 200, {
+          success: true,
+          message: "Device deleted",
+          status: existingClient.status,
+        });
 
-    res.status(200).json({
-      success: true,
-      message: "WhatsApp client deleted",
-    });
+      case "LOGOUT":
+        return handleResponse(res, 200, {
+          success: true,
+          message: "Device already deleted",
+          status: existingClient.status,
+        });
+    }
   } catch (error: any) {
     logger.error(`Delete device error: ${error.message}`);
-    res.status(500).json({
+    handleResponse(res, 500, {
       success: false,
-      message: "Failed to delete WhatsApp client",
-      error: error.message,
+      message: "Failed to delete device",
     });
   }
 };
@@ -105,40 +165,33 @@ export const getClientStatus: RequestHandler = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(401).json({ success: false, message: "Unauthorized" });
-      return;
-    }
+  const userId = req.user?.id;
+  if (!userId) return handleAuthError(res);
 
+  try {
     const client = await prisma.client.findFirst({
       where: { userId },
-      select: {
-        id: true,
-        status: true,
-        lastActive: true,
-      },
+      select: { status: true, lastActive: true },
     });
 
     if (!client) {
-      res.status(404).json({
+      return handleResponse(res, 404, {
         success: false,
         message: "Client not found",
       });
-      return;
     }
 
-    res.json({
+    return handleResponse(res, 200, {
       success: true,
-      data: client,
+      message: "Client status",
+      status: client.status,
+      lastActive: client.lastActive,
     });
   } catch (error: any) {
     logger.error(`Get client status error: ${error.message}`);
-    res.status(500).json({
+    handleResponse(res, 500, {
       success: false,
       message: "Failed to get client status",
-      error: error.message,
     });
   }
 };
@@ -147,42 +200,51 @@ export const getClientQr: RequestHandler = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(401).json({ success: false, message: "Unauthorized" });
-      return;
-    }
+  const userId = req.user?.id;
+  if (!userId) return handleAuthError(res);
 
-    const client = await prisma.client.findFirst({
+  try {
+    const existingClient = await prisma.client.findFirst({
       where: { userId },
-      select: {
-        status: true,
-        lastQrCode: true,
-      },
+      select: { id: true, status: true, lastQrCode: true },
     });
 
-    if (!client) {
-      res.status(404).json({
+    if (!existingClient) {
+      return handleResponse(res, 404, {
         success: false,
         message: "Client not found",
       });
-      return;
     }
 
-    res.json({
-      success: true,
-      data: {
-        status: client.status,
-        qrCode: client.lastQrCode,
-      },
-    });
+    switch (existingClient.status) {
+      case "INITIALIZING":
+        return handleResponse(res, 200, {
+          success: true,
+          message: "Connection in progress",
+          status: existingClient.status,
+          qrCode: existingClient.lastQrCode,
+        });
+
+      case "CONNECTED":
+        return handleResponse(res, 200, {
+          success: true,
+          message: "Client already connected",
+          status: existingClient.status,
+        });
+
+      case "DISCONNECTED":
+      case "LOGOUT":
+        return handleResponse(res, 200, {
+          success: true,
+          message: "User already logged out or disconnected",
+          status: existingClient.status,
+        });
+    }
   } catch (error: any) {
-    logger.error(`Get client QR error: ${error.message}`);
-    res.status(500).json({
+    logger.error(`Get QR code error: ${error.message}`);
+    handleResponse(res, 500, {
       success: false,
-      message: "Failed to get client QR code",
-      error: error.message,
+      message: "Failed to get QR code",
     });
   }
 };

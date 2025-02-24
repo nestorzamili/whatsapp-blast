@@ -4,8 +4,9 @@ import logger from "../config/logger";
 import messageRepository from "../repositories/message.repository";
 import { uploadToCloudinary, getOptimizedUrl } from "../utils/cloudinary.util";
 import multer from "multer";
-import clientService from "../services/client.service";
+import { ClientService } from "../services/client.service";
 import QuotaService from "../services/quota.service";
+import { MessageService } from "../services/message.service";
 
 const upload = multer().single("media");
 
@@ -64,9 +65,7 @@ export const sendMessages: RequestHandler = async (
       return;
     }
 
-    const whatsappInstance = clientService.getWhatsAppInstance(
-      existingClient.id
-    );
+    const whatsappInstance = ClientService.getInstance();
     if (!whatsappInstance) {
       res.status(400).json({
         success: false,
@@ -114,13 +113,15 @@ export const sendMessages: RequestHandler = async (
       }
     );
 
-    whatsappInstance.on("progress", (progress: BatchProgress) => {
+    const messageService = new MessageService();
+
+    messageService.on("progress", (progress: BatchProgress) => {
       logger.info(
         `Progress: ${progress.processed}/${progress.total} (Success: ${progress.successful}, Failed: ${progress.failed})`
       );
     });
 
-    whatsappInstance.processBatch(messageRecords, userId).catch((error) => {
+    messageService.processBatch(messageRecords, userId).catch((error) => {
       logger.error("Message processing error:", error);
     });
 
