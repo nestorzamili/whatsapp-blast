@@ -1,19 +1,10 @@
-# Stage 1: Build
-FROM node:22-slim AS builder
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci  
-
-COPY . .
-RUN npm run build
-
-# Stage 2: Runtime
 FROM node:22-slim
+
 WORKDIR /app
 
 ARG GIT_TAG=latest
 
+# Dependency for Puppeteer
 RUN apt-get update && apt-get install -y \
     gconf-service libgbm-dev libasound2 libatk1.0-0 libc6 libcairo2 libcups2 \
     libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 \
@@ -24,11 +15,17 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-RUN npm ci --only=production
 
-COPY --from=builder /app/dist ./dist
+RUN npm ci
+
+COPY . .
+
+RUN npm run build
+
+RUN npm ci --omit=dev
 
 EXPOSE 3000
+
 CMD ["npm", "start"]
 
 LABEL git.tag=${GIT_TAG}
