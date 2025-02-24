@@ -1,6 +1,7 @@
 import { Request, Response, RequestHandler } from "express";
 import QuotaService from "../services/quota.service";
 import logger from "../config/logger";
+import { handleResponse, handleAuthError } from "../utils/response.util";
 
 export const addQuota: RequestHandler = async (
   req: Request,
@@ -11,31 +12,35 @@ export const addQuota: RequestHandler = async (
     const amount = req.body.amount;
 
     if (!userId) {
-      res.status(401).json({ success: false, message: "Unauthorized" });
+      handleAuthError(res);
       return;
     }
 
     if (!amount) {
-      res.status(400).json({ success: false, message: "Amount is required" });
+      handleResponse(res, 400, {
+        success: false,
+        message: "Amount is required",
+      });
       return;
     }
 
     if (amount <= 0) {
-      res
-        .status(400)
-        .json({ success: false, message: "Amount must be greater than 0" });
+      handleResponse(res, 400, {
+        success: false,
+        message: "Amount must be greater than 0",
+      });
       return;
     }
 
     await QuotaService.addQuota(userId, amount);
 
-    res.status(200).json({
+    handleResponse(res, 200, {
       success: true,
       message: "Quota added successfully",
     });
   } catch (error: any) {
     logger.error(`Add quota error: ${error.message}`);
-    res.status(500).json({
+    handleResponse(res, 500, {
       success: false,
       message: "Failed to add quota",
       error: error.message,
@@ -50,19 +55,23 @@ export const checkQuota: RequestHandler = async (
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ success: false, message: "Unauthorized" });
+      handleAuthError(res);
       return;
     }
 
-    const balance = await QuotaService.getAvailableBalance(userId);
+    const { balance, lockedAmount } = await QuotaService.getAvailableBalance(
+      userId
+    );
 
-    res.status(200).json({
+    handleResponse(res, 200, {
       success: true,
+      message: "Quota retrieved successfully",
       balance,
+      lockedAmount,
     });
   } catch (error: any) {
     logger.error(`Check quota error: ${error.message}`);
-    res.status(500).json({
+    handleResponse(res, 500, {
       success: false,
       message: "Failed to check quota balance",
       error: error.message,
