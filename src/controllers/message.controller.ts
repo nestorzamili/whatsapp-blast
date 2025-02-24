@@ -3,6 +3,13 @@ import prisma from "../config/db";
 import logger from "../config/logger";
 import messageRepository from "../repositories/message.repository";
 import { uploadToCloudinary, getOptimizedUrl } from "../utils/cloudinary.util";
+import {
+  handleResponse,
+  handleAuthError,
+  handleClientError,
+  handleServerError,
+  handleNotFoundError,
+} from "../utils/response.util";
 import multer from "multer";
 import { ClientService } from "../services/client.service";
 import QuotaService from "../services/quota.service";
@@ -24,7 +31,7 @@ export const sendMessages: RequestHandler = async (
 
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ success: false, message: "Unauthorized" });
+      handleAuthError(res);
       return;
     }
 
@@ -33,10 +40,7 @@ export const sendMessages: RequestHandler = async (
     });
 
     if (!existingClient || existingClient.status !== "CONNECTED") {
-      res.status(400).json({
-        success: false,
-        message: "WhatsApp client not connected",
-      });
+      handleClientError(res, "WhatsApp client not connected");
       return;
     }
 
@@ -48,29 +52,20 @@ export const sendMessages: RequestHandler = async (
     const media = req.file ? req.file.buffer : req.body.media;
 
     if (numbers.length === 0 || !content) {
-      res.status(400).json({
-        success: false,
-        message: "Numbers array and content are required",
-      });
+      handleClientError(res, "Numbers array and content are required");
       return;
     }
 
     const requiredQuota = numbers.length;
     const balance = await QuotaService.getAvailableBalance(userId);
     if (balance < requiredQuota) {
-      res.status(400).json({
-        success: false,
-        message: "Insufficient quota balance",
-      });
+      handleClientError(res, "Insufficient quota balance");
       return;
     }
 
     const whatsappInstance = ClientService.getInstance();
     if (!whatsappInstance) {
-      res.status(400).json({
-        success: false,
-        message: "WhatsApp client not initialized",
-      });
+      handleClientError(res, "WhatsApp client not initialized");
       return;
     }
 
@@ -81,7 +76,6 @@ export const sendMessages: RequestHandler = async (
         if (Buffer.isBuffer(media)) {
           uploadResult = await uploadToCloudinary(media);
         } else if (typeof media === "string") {
-          // file deepcode ignore Ssrf: will do it later
           const response = await fetch(media);
           if (!response.ok) throw new Error("Failed to fetch media from URL");
           const buffer = Buffer.from(await response.arrayBuffer());
@@ -96,10 +90,7 @@ export const sendMessages: RequestHandler = async (
         }
       } catch (error) {
         logger.error("Failed to process media:", error);
-        res.status(400).json({
-          success: false,
-          message: "Failed to process media. " + error,
-        });
+        handleClientError(res, "Failed to process media. " + error);
         return;
       }
     }
@@ -125,18 +116,13 @@ export const sendMessages: RequestHandler = async (
       logger.error("Message processing error:", error);
     });
 
-    res.status(200).json({
+    handleResponse(res, 200, {
       success: true,
       message: `Processing ${numbers.length} messages`,
-      messageIds: messageRecords.map((m) => m.id),
     });
   } catch (error: any) {
     logger.error(`Send messages error: ${error.message}`);
-    res.status(500).json({
-      success: false,
-      message: "Failed to send messages",
-      error: error.message,
-    });
+    handleServerError(res, error);
   }
 };
 
@@ -147,12 +133,10 @@ export const getMessages: RequestHandler = async (
   try {
     const userId = req.user?.id;
     if (!userId) {
-      res.status(401).json({ success: false, message: "Unauthorized" });
+      handleAuthError(res);
       return;
     }
 
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
     const status = req.query.status as MessageStatus | undefined;
 
     const client = await prisma.client.findFirst({
@@ -160,49 +144,25 @@ export const getMessages: RequestHandler = async (
     });
 
     if (!client) {
-      res.status(404).json({
-        success: false,
-        message: "Client not found",
-      });
+      handleNotFoundError(res, "Client not found");
       return;
     }
 
-    const [messages, total] = await prisma.$transaction([
-      prisma.message.findMany({
-        where: {
-          clientId: client.id,
-          ...(status && { status }),
-        },
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.message.count({
-        where: {
-          clientId: client.id,
-          ...(status && { status }),
-        },
-      }),
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        messages,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
+    const messages = await prisma.message.findMany({
+      where: {
+        clientId: client.id,
+        ...(status && { status }),
       },
+      orderBy: { createdAt: "desc" },
+    });
+
+    handleResponse(res, 200, {
+      success: true,
+      message: "Messages retrieved successfully",
+      data: messages,
     });
   } catch (error: any) {
     logger.error(`Get messages error: ${error.message}`);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get messages",
-      error: error.message,
-    });
+    handleServerError(res, error);
   }
 };

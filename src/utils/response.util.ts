@@ -2,7 +2,7 @@ import { Response } from "express";
 
 interface ResponseData {
   success: boolean;
-  message: string;
+  message?: string;
   [key: string]: any;
 }
 
@@ -18,5 +18,27 @@ export const handleAuthError = (res: Response): void => {
   handleResponse(res, 401, {
     success: false,
     message: "Unauthorized access",
+  });
+};
+
+export const handleClientError = (res: Response, message: string): void => {
+  handleResponse(res, 400, {
+    success: false,
+    message,
+  });
+};
+
+export const handleNotFoundError = (res: Response, message: string): void => {
+  handleResponse(res, 404, {
+    success: false,
+    message,
+  });
+};
+
+export const handleServerError = (res: Response, error: any): void => {
+  handleResponse(res, 500, {
+    success: false,
+    message: "Internal server error",
+    error: error.message,
   });
 };

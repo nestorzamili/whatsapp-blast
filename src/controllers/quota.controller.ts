@@ -1,7 +1,11 @@
 import { Request, Response, RequestHandler } from "express";
 import QuotaService from "../services/quota.service";
 import logger from "../config/logger";
-import { handleResponse, handleAuthError } from "../utils/response.util";
+import {
+  handleResponse,
+  handleAuthError,
+  handleServerError,
+} from "../utils/response.util";
 
 export const addQuota: RequestHandler = async (
   req: Request,
@@ -40,11 +44,7 @@ export const addQuota: RequestHandler = async (
     });
   } catch (error: any) {
     logger.error(`Add quota error: ${error.message}`);
-    handleResponse(res, 500, {
-      success: false,
-      message: "Failed to add quota",
-      error: error.message,
-    });
+    handleServerError(res, error);
   }
 };
 
@@ -71,10 +71,6 @@ export const checkQuota: RequestHandler = async (
     });
   } catch (error: any) {
     logger.error(`Check quota error: ${error.message}`);
-    handleResponse(res, 500, {
-      success: false,
-      message: "Failed to check quota balance",
-      error: error.message,
-    });
+    handleServerError(res, error);
   }
 };

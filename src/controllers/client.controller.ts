@@ -2,7 +2,11 @@ import e, { Request, Response, RequestHandler } from "express";
 import prisma from "../config/db";
 import logger from "../config/logger";
 import clientService from "../services/client.service";
-import { handleResponse, handleAuthError } from "../utils/response.util";
+import {
+  handleResponse,
+  handleAuthError,
+  handleServerError,
+} from "../utils/response.util";
 
 export const connectClient: RequestHandler = async (
   req: Request,
@@ -56,10 +60,7 @@ export const connectClient: RequestHandler = async (
     }
   } catch (error: any) {
     logger.error(`Connect error: ${error.message}`);
-    handleResponse(res, 500, {
-      success: false,
-      message: "Connection failed",
-    });
+    handleServerError(res, error);
   }
 };
 
@@ -107,10 +108,7 @@ export const disconnectClient: RequestHandler = async (
     }
   } catch (error: any) {
     logger.error(`Disconnect error: ${error.message}`);
-    handleResponse(res, 500, {
-      success: false,
-      message: "Failed to disconnect",
-    });
+    handleServerError(res, error);
   }
 };
 
@@ -154,10 +152,7 @@ export const deleteDevice: RequestHandler = async (
     }
   } catch (error: any) {
     logger.error(`Delete device error: ${error.message}`);
-    handleResponse(res, 500, {
-      success: false,
-      message: "Failed to delete device",
-    });
+    handleServerError(res, error);
   }
 };
 
@@ -189,10 +184,7 @@ export const getClientStatus: RequestHandler = async (
     });
   } catch (error: any) {
     logger.error(`Get client status error: ${error.message}`);
-    handleResponse(res, 500, {
-      success: false,
-      message: "Failed to get client status",
-    });
+    handleServerError(res, error);
   }
 };
 
@@ -242,9 +234,6 @@ export const getClientQr: RequestHandler = async (
     }
   } catch (error: any) {
     logger.error(`Get QR code error: ${error.message}`);
-    handleResponse(res, 500, {
-      success: false,
-      message: "Failed to get QR code",
-    });
+    handleServerError(res, error);
   }
 };
