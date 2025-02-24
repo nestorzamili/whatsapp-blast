@@ -6,6 +6,7 @@ import {
   handleAuthError,
   handleServerError,
 } from "../utils/response.util";
+import prisma from "../config/db";
 
 export const addQuota: RequestHandler = async (
   req: Request,
@@ -36,7 +37,15 @@ export const addQuota: RequestHandler = async (
       return;
     }
 
-    await QuotaService.addQuota(userId, amount);
+    const user = await prisma.quota.findUnique({
+      where: { userId },
+    });
+
+    if (!user) {
+      await QuotaService.createQuota(userId, amount);
+    } else {
+      await QuotaService.addQuota(userId, amount);
+    }
 
     handleResponse(res, 200, {
       success: true,
