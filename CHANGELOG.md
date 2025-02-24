@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.1.2](https://github.com/nestorzamili/whatsapp-blast/compare/v3.1.1...v3.1.2) (2025-02-24)
+
+
+### Code Refactoring
+
+* streamline Dockerfile by consolidating build stages and optimizing npm install commands ([064c363](https://github.com/nestorzamili/whatsapp-blast/commit/064c363da474279dd5dd65804eac34c74f8ebdae))
+
 ## [3.1.1](https://github.com/nestorzamili/whatsapp-blast/compare/v3.1.0...v3.1.1) (2025-02-24)
 
 
