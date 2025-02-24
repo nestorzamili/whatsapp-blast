@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.1.0](https://github.com/nestorzamili/whatsapp-blast/compare/v3.0.0...v3.1.0) (2025-02-24)
+
+
+### Features
+
+* update Dockerfile and package.json to generate Prisma client during postinstall ([627bf34](https://github.com/nestorzamili/whatsapp-blast/commit/627bf34ecb824c1efc9f339aec1e17b51c087999))
+
 ## [3.0.0](https://github.com/nestorzamili/whatsapp-blast/compare/v2.0.0...v3.0.0) (2025-02-24)
 
 
