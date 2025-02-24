@@ -26,8 +26,6 @@ RUN apt-get update && apt-get install -y \
 COPY package*.json ./
 RUN npm ci --only=production
 
-COPY --from=builder /app/prisma /app/prisma
-
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000

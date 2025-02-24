@@ -6,7 +6,13 @@ import fs from "fs/promises";
 import { Client, LocalAuth } from "whatsapp-web.js";
 import { puppeteerConfig } from "../config/puppeteer.config";
 import EventEmitter from "events";
-import { ClientStatus } from "@prisma/client";
+
+enum ClientStatus {
+  DISCONNECTED = "DISCONNECTED",
+  CONNECTED = "CONNECTED",
+  INITIALIZING = "INITIALIZING",
+  LOGOUT = "LOGOUT",
+}
 
 interface ClientUpdateData {
   status?: ClientStatus;
@@ -363,7 +369,7 @@ export class ClientService extends EventEmitter {
 
       await prisma.client.update({
         where: { id: clientId },
-        data: sanitizedData,
+        data: sanitizedData as any,
       });
 
       logger.info(`Successfully updated status for client ${clientId}`);
