@@ -6,6 +6,7 @@ import {
   handleResponse,
   handleAuthError,
   handleServerError,
+  handleNotFoundError,
 } from "../utils/response.util";
 
 export const connectClient: RequestHandler = async (
@@ -78,10 +79,7 @@ export const disconnectClient: RequestHandler = async (
     });
 
     if (!existingClient) {
-      return handleResponse(res, 404, {
-        success: false,
-        message: "Client not found",
-      });
+      return handleNotFoundError(res, "Client not found");
     }
 
     switch (existingClient.status) {
@@ -126,10 +124,7 @@ export const deleteDevice: RequestHandler = async (
     });
 
     if (!existingClient) {
-      return handleResponse(res, 404, {
-        success: false,
-        message: "Client not found",
-      });
+      return handleNotFoundError(res, "Client not found");
     }
 
     switch (existingClient.status) {
@@ -170,10 +165,7 @@ export const getClientStatus: RequestHandler = async (
     });
 
     if (!client) {
-      return handleResponse(res, 404, {
-        success: false,
-        message: "Client not found",
-      });
+      return handleNotFoundError(res, "Client not found");
     }
 
     return handleResponse(res, 200, {
@@ -202,10 +194,7 @@ export const getClientQr: RequestHandler = async (
     });
 
     if (!existingClient) {
-      return handleResponse(res, 404, {
-        success: false,
-        message: "Client not found",
-      });
+      return handleNotFoundError(res, "Client not found");
     }
 
     switch (existingClient.status) {
