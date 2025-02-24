@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.0.0](https://github.com/nestorzamili/whatsapp-blast/compare/v3.1.2...v4.0.0) (2025-02-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* improve error handling in controllers and response utilities
+
+### Code Refactoring
+
+* enhance cleanup process and error handling in ClientService ([e20b44d](https://github.com/nestorzamili/whatsapp-blast/commit/e20b44d271abd7e49c947b08f8511587af3fc3be))
+* enhance quota handling by checking for existing user quotas before adding ([ddcfb6a](https://github.com/nestorzamili/whatsapp-blast/commit/ddcfb6ad8040f53186646ec76500dd18467c288b))
+* improve error handling in controllers and response utilities ([c6ea8fe](https://github.com/nestorzamili/whatsapp-blast/commit/c6ea8fef706a653bc7a37141712d5a90810cbb2c))
+* improve response handling and error management in quota controller and service ([5801693](https://github.com/nestorzamili/whatsapp-blast/commit/5801693b4cd49de7551ed36533b07beecaff2e84))
+* streamline not found error handling in client controller ([c28e30f](https://github.com/nestorzamili/whatsapp-blast/commit/c28e30fe29068c190aa2fec68544edd98f559253))
+
 ## [3.1.2](https://github.com/nestorzamili/whatsapp-blast/compare/v3.1.1...v3.1.2) (2025-02-24)
 
 
