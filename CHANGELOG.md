@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.0.1](https://github.com/nestorzamili/whatsapp-blast/compare/v4.0.0...v4.0.1) (2025-02-25)
+
+
+### Bug Fixes
+
+* update addQuota to require userId and improve amount validation ([52ccb93](https://github.com/nestorzamili/whatsapp-blast/commit/52ccb9313766b4075ba9bf5b7e6f34da78f5bdeb))
+
 ## [4.0.0](https://github.com/nestorzamili/whatsapp-blast/compare/v3.1.2...v4.0.0) (2025-02-24)
 
 
