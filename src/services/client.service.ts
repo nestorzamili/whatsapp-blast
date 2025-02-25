@@ -6,6 +6,7 @@ import fs from "fs/promises";
 import { Client, LocalAuth } from "whatsapp-web.js";
 import { puppeteerConfig } from "../config/puppeteer.config";
 import EventEmitter from "events";
+import { HttpStatus } from "../utils/response.util";
 
 enum ClientStatus {
   DISCONNECTED = "DISCONNECTED",
@@ -52,11 +53,26 @@ export class ClientService extends EventEmitter {
     this.setupCleanupHandlers();
   }
 
+  public getStatus(): { active: boolean; connections: number } {
+    return {
+      active: this.activeClients.size > 0,
+      connections: this.activeClients.size,
+    };
+  }
+
   public static getInstance(): ClientService {
     if (!ClientService.instance) {
       ClientService.instance = new ClientService();
     }
     return ClientService.instance;
+  }
+
+  public static getServiceStatus(): { active: boolean; connections: number } {
+    const instance = ClientService.getInstance();
+    return {
+      active: instance.activeClients.size > 0,
+      connections: instance.activeClients.size,
+    };
   }
 
   private setupCleanupHandlers(): void {
@@ -255,10 +271,18 @@ export class ClientService extends EventEmitter {
     }
   }
 
+  private createError(
+    message: string,
+    statusCode: HttpStatus,
+    details?: Record<string, any>
+  ): ServiceError {
+    return { message, statusCode, details };
+  }
+
   async connectClient(userId: string): Promise<string> {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      throw new Error("User not found");
+      throw this.createError("User not found", HttpStatus.NOT_FOUND);
     }
 
     let client = await this.getOrCreateClientRecord(userId);
@@ -270,7 +294,6 @@ export class ClientService extends EventEmitter {
       return client.id;
     }
 
-    // Check for existing session
     const hasExistingSession = await this.checkExistingSession(userId);
     if (!hasExistingSession) {
       logger.info(
@@ -291,9 +314,7 @@ export class ClientService extends EventEmitter {
     const whatsappInstance = this.createClient(userId);
     logger.debug(`Created new WhatsApp instance for client ${client.id}`);
 
-    // Setup listeners sebelum initialize
     await this.setupClientEventListeners(whatsappInstance, client.id, userId);
-    logger.debug(`Event listeners setup completed for client ${client.id}`);
 
     try {
       logger.info(`Initializing WhatsApp client for user ${userId}`);
@@ -301,14 +322,17 @@ export class ClientService extends EventEmitter {
       logger.debug(`WhatsApp instance initialized successfully`);
       return client.id;
     } catch (error) {
-      // Hapus instance jika initialization gagal
       this.activeClients.delete(client.id);
       logger.error(`Failed to initialize client:`, error);
       await this.handleDisconnection(client.id, userId, {
         reason: DisconnectReason.AUTH_FAILURE,
         clearSession: true,
       });
-      throw error;
+      throw this.createError(
+        "Failed to initialize WhatsApp client",
+        HttpStatus.SERVICE_UNAVAILABLE,
+        { reason: "AUTH_FAILURE" }
+      );
     }
   }
 
@@ -350,19 +374,28 @@ export class ClientService extends EventEmitter {
     const client = await prisma.client.findFirst({ where: { userId } });
     if (!client) return;
 
-    const instance = this.activeClients.get(client.id);
-    if (!instance) return;
-
     try {
+      const instance = this.activeClients.get(client.id);
+
+      await this.cleanupSession(userId);
+
+      if (!instance) {
+        await this.updateClientStatus(client.id, {
+          status: ClientStatus.LOGOUT,
+          session: null,
+        });
+        return;
+      }
+
       this.stopInactivityTimer(client.id);
       await instance.logout();
-      await this.handleDisconnection(client.id, userId, {
-        reason: DisconnectReason.DEVICE_DELETED,
-        clearSession: true,
-      });
+      await this.safeDestroyInstance(client.id);
       this.emit("client.deleted", client.id);
     } catch (error) {
       logger.error(`Error deleting device for client ${client.id}:`, error);
+      await this.cleanupSession(userId).catch((err) =>
+        logger.error(`Failed to cleanup session after error:`, err)
+      );
       throw error;
     }
   }
@@ -457,7 +490,6 @@ export class ClientService extends EventEmitter {
       await instance.destroy();
       logger.info(`Instance destroyed successfully for client ${clientId}`);
 
-      // Remove from active clients after successful destroy
       this.activeClients.delete(clientId);
       logger.debug(`Removed client ${clientId} from active clients map`);
     } catch (error: any) {
@@ -488,18 +520,19 @@ export class ClientService extends EventEmitter {
       `session-${userId}`
     );
     try {
-      if (await fs.stat(sessionDir).catch(() => false)) {
-        await fs.rm(sessionDir, { recursive: true, force: true });
-        logger.info(`Session directory cleaned up for user ${userId}`);
-      }
+      await fs.rm(sessionDir, { recursive: true, force: true });
+      logger.info(`Session directory cleaned up for user ${userId}`);
     } catch (error) {
       logger.error(`Error cleaning up session:`, error);
+      throw error; // Re-throw to handle cleanup failure
     }
   }
 
   private async handleQrLimit(clientId: string): Promise<void> {
     const client = await prisma.client.findUnique({ where: { id: clientId } });
-    if (!client) return;
+    if (!client) {
+      throw this.createError("Client not found", HttpStatus.NOT_FOUND);
+    }
 
     await this.handleDisconnection(client.id, client.userId, {
       reason: DisconnectReason.QR_LIMIT,
@@ -516,7 +549,22 @@ export class ClientService extends EventEmitter {
         },
       });
 
-      return clientRecord ? this.activeClients.get(clientRecord.id) : undefined;
+      if (!clientRecord) {
+        throw this.createError("No active client found", HttpStatus.NOT_FOUND, {
+          userId,
+        });
+      }
+
+      const client = this.activeClients.get(clientRecord.id);
+      if (!client) {
+        throw this.createError(
+          "Client instance not found",
+          HttpStatus.SERVICE_UNAVAILABLE,
+          { clientId: clientRecord.id }
+        );
+      }
+
+      return client;
     } catch (error) {
       logger.error(`Error getting client for user ${userId}:`, error);
       throw error;

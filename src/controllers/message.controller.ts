@@ -3,13 +3,7 @@ import prisma from "../config/db";
 import logger from "../config/logger";
 import messageRepository from "../repositories/message.repository";
 import { uploadToCloudinary, getOptimizedUrl } from "../utils/cloudinary.util";
-import {
-  handleResponse,
-  handleAuthError,
-  handleClientError,
-  handleServerError,
-  handleNotFoundError,
-} from "../utils/response.util";
+import { ResponseUtil, HttpStatus } from "../utils/response.util";
 import multer from "multer";
 import { ClientService } from "../services/client.service";
 import QuotaService from "../services/quota.service";
@@ -24,23 +18,17 @@ export const sendMessages: RequestHandler = async (
   try {
     await new Promise((resolve, reject) => {
       upload(req, res, (err) => {
-        if (err) reject(err);
+        if (err) {
+          ResponseUtil.badRequest(res, "Invalid file upload", [err.message]);
+          reject(err);
+        }
         resolve(undefined);
       });
     });
 
     const userId = req.user?.id;
     if (!userId) {
-      handleAuthError(res);
-      return;
-    }
-
-    const existingClient = await prisma.client.findFirst({
-      where: { userId },
-    });
-
-    if (!existingClient || existingClient.status !== "CONNECTED") {
-      handleClientError(res, "WhatsApp client not connected");
+      ResponseUtil.unauthorized(res, "User authentication required");
       return;
     }
 
@@ -51,21 +39,50 @@ export const sendMessages: RequestHandler = async (
     const content = req.body.content;
     const media = req.file ? req.file.buffer : req.body.media;
 
-    if (numbers.length === 0 || !content) {
-      handleClientError(res, "Numbers array and content are required");
+    // Validasi input
+    const validationErrors = [];
+    if (numbers.length === 0)
+      validationErrors.push("Phone numbers are required");
+    if (!content) validationErrors.push("Message content is required");
+
+    if (validationErrors.length > 0) {
+      ResponseUtil.validationError(
+        res,
+        validationErrors,
+        "Invalid message parameters"
+      );
+      return;
+    }
+
+    const existingClient = await prisma.client.findFirst({
+      where: { userId },
+    });
+
+    if (!existingClient || existingClient.status !== "CONNECTED") {
+      ResponseUtil.validationError(
+        res,
+        ["WhatsApp client must be connected to send messages"],
+        "WhatsApp client not connected"
+      );
       return;
     }
 
     const requiredQuota = numbers.length;
     const balance = await QuotaService.getAvailableBalance(userId);
     if (balance < requiredQuota) {
-      handleClientError(res, "Insufficient quota balance");
+      ResponseUtil.conflict(res, "Insufficient quota balance", [
+        `Required: ${requiredQuota}, Available: ${balance}`,
+      ]);
       return;
     }
 
     const whatsappInstance = ClientService.getInstance();
     if (!whatsappInstance) {
-      handleClientError(res, "WhatsApp client not initialized");
+      ResponseUtil.error(
+        res,
+        "WhatsApp service unavailable",
+        HttpStatus.SERVICE_UNAVAILABLE
+      );
       return;
     }
 
@@ -90,7 +107,11 @@ export const sendMessages: RequestHandler = async (
         }
       } catch (error) {
         logger.error("Failed to process media:", error);
-        handleClientError(res, "Failed to process media. " + error);
+        ResponseUtil.validationError(
+          res,
+          [`Failed to process media: ${error}`],
+          "Media processing error"
+        );
         return;
       }
     }
@@ -116,13 +137,13 @@ export const sendMessages: RequestHandler = async (
       logger.error("Message processing error:", error);
     });
 
-    handleResponse(res, 200, {
-      success: true,
-      message: `Processing ${numbers.length} messages`,
+    ResponseUtil.success(res, `Processing ${numbers.length} messages`, {
+      messageCount: numbers.length,
+      hasMedia: !!cloudinaryUrl,
     });
   } catch (error: any) {
     logger.error(`Send messages error: ${error.message}`);
-    handleServerError(res, error);
+    ResponseUtil.internalServerError(res, error);
   }
 };
 
@@ -133,7 +154,7 @@ export const getMessages: RequestHandler = async (
   try {
     const userId = req.user?.id;
     if (!userId) {
-      handleAuthError(res);
+      ResponseUtil.unauthorized(res, "User authentication required");
       return;
     }
 
@@ -144,7 +165,7 @@ export const getMessages: RequestHandler = async (
     });
 
     if (!client) {
-      handleNotFoundError(res, "Client not found");
+      ResponseUtil.notFound(res, "Client not found");
       return;
     }
 
@@ -156,13 +177,9 @@ export const getMessages: RequestHandler = async (
       orderBy: { createdAt: "desc" },
     });
 
-    handleResponse(res, 200, {
-      success: true,
-      message: "Messages retrieved successfully",
-      data: messages,
-    });
+    ResponseUtil.success(res, "Messages retrieved successfully", messages);
   } catch (error: any) {
     logger.error(`Get messages error: ${error.message}`);
-    handleServerError(res, error);
+    ResponseUtil.internalServerError(res, error);
   }
 };

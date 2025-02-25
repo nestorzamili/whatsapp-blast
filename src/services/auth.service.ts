@@ -8,42 +8,64 @@ import {
 } from "../config/jwt";
 import { sendVerificationEmail, sendPasswordReset } from "./email.service";
 import QuotaService from "./quota.service";
+import logger from "../config/logger";
+import { HttpStatus } from "../utils/response.util";
 
 export class AuthService {
-  async register(name: string, email: string, password: string) {
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+  private createError(message: string, statusCode: HttpStatus): ServiceError {
+    return { message, statusCode };
+  }
 
-    if (existingUser) {
-      throw new Error("User already exists");
+  private async findUserByEmail(email: string) {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      throw this.createError("User not found", HttpStatus.NOT_FOUND);
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = generateVerificationToken();
-
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: "user",
-        verificationToken,
-        verifyExpires: new Date(Date.now() + 60 * 60 * 1000),
-      },
-    });
-
-    await sendVerificationEmail(email, verificationToken);
     return user;
   }
 
-  async login(email: string, password: string) {
-    const user = await prisma.user.findUnique({ where: { email } });
+  async register(name: string, email: string, password: string) {
+    try {
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser) {
+        throw this.createError("User already exists", HttpStatus.CONFLICT);
+      }
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      throw new Error("Invalid credentials");
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const verificationToken = generateVerificationToken();
+
+      const user = await prisma.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+          role: "user",
+          verificationToken,
+          verifyExpires: new Date(Date.now() + 60 * 60 * 1000),
+        },
+      });
+
+      await sendVerificationEmail(email, verificationToken);
+      logger.info(`Verification email sent to ${email}`);
+      return user;
+    } catch (error) {
+      logger.error(`Failed to register user: ${error}`);
+      throw this.createError("Registration failed", HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async login(email: string, password: string) {
+    const user = await this.findUserByEmail(email);
+
+    if (!(await bcrypt.compare(password, user.password))) {
+      throw this.createError("Invalid credentials", HttpStatus.UNAUTHORIZED);
     }
 
     if (!user.isVerified) {
-      throw new Error("Email is not verified");
+      throw this.createError(
+        "Email not verified. Please verify your email first",
+        HttpStatus.UNAUTHORIZED
+      );
     }
 
     const userPayload = {
@@ -63,7 +85,10 @@ export class AuthService {
     const verification = await verifyRefreshToken(refreshToken);
 
     if (!verification.isValid || !verification.payload) {
-      throw new Error(verification.error || "Invalid refresh token");
+      throw this.createError(
+        "Invalid or expired refresh token",
+        HttpStatus.UNAUTHORIZED
+      );
     }
 
     const { id, role, name, email } = verification.payload;
@@ -73,14 +98,10 @@ export class AuthService {
   }
 
   async requestEmailVerification(email: string) {
-    const user = await prisma.user.findUnique({ where: { email } });
-
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const user = await this.findUserByEmail(email);
 
     if (user.isVerified) {
-      throw new Error("Email is already verified");
+      throw this.createError("Email is already verified", HttpStatus.CONFLICT);
     }
 
     const token = generateVerificationToken();
@@ -104,7 +125,10 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new Error("Invalid or expired token");
+      throw this.createError(
+        "Invalid or expired token",
+        HttpStatus.UNAUTHORIZED
+      );
     }
 
     await QuotaService.createQuota(user.id, 10);
@@ -119,11 +143,7 @@ export class AuthService {
   }
 
   async requestPasswordReset(email: string) {
-    const user = await prisma.user.findUnique({ where: { email } });
-
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const user = await this.findUserByEmail(email);
 
     const resetToken = generateVerificationToken();
     await prisma.user.update({
@@ -146,7 +166,10 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new Error("Invalid or expired token");
+      throw this.createError(
+        "Invalid or expired token",
+        HttpStatus.UNAUTHORIZED
+      );
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);

@@ -1,8 +1,17 @@
 import prisma from "../config/db";
 import logger from "../config/logger";
 import { Prisma } from "@prisma/client";
+import { HttpStatus } from "../utils/response.util";
 
 class QuotaService {
+  private createError(
+    message: string,
+    statusCode: HttpStatus,
+    details?: Record<string, any>
+  ): ServiceError {
+    return { message, statusCode, details };
+  }
+
   async getAvailableBalance(
     userId: string
   ): Promise<{ balance: number; lockedAmount: number }> {
@@ -12,29 +21,39 @@ class QuotaService {
     });
 
     if (!quota) {
-      throw new Error("Quota not found");
+      throw this.createError("Quota not found", HttpStatus.NOT_FOUND);
     }
 
     return { balance: quota.balance, lockedAmount: quota.lockedAmount };
   }
 
   async addQuota(userId: string, amount: number): Promise<void> {
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const quota = await tx.quota.findUnique({
-        where: { userId },
-      });
+    try {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const quota = await tx.quota.findUnique({
+          where: { userId },
+        });
 
-      if (!quota) {
-        throw new Error("Quota not found");
+        if (!quota) {
+          throw this.createError("Quota not found", HttpStatus.NOT_FOUND);
+        }
+
+        await tx.quota.update({
+          where: { userId },
+          data: {
+            balance: { increment: amount },
+          },
+        });
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        throw this.createError(
+          `Failed to add quota: ${error.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
       }
-
-      await tx.quota.update({
-        where: { userId },
-        data: {
-          balance: { increment: amount },
-        },
-      });
-    });
+      throw error;
+    }
   }
 
   async createQuota(userId: string, initialBalance: number = 0): Promise<void> {
@@ -54,34 +73,42 @@ class QuotaService {
   }
 
   async reserveQuota(userId: string, amount: number): Promise<void> {
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const quota = await tx.quota.findUnique({
-        where: { userId },
-        select: { balance: true, lockedAmount: true },
+    try {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const quota = await tx.quota.findUnique({
+          where: { userId },
+          select: { balance: true, lockedAmount: true },
+        });
+
+        if (!quota) {
+          throw this.createError("Quota not found", HttpStatus.NOT_FOUND);
+        }
+
+        if (quota.balance < amount) {
+          throw this.createError("Insufficient balance", HttpStatus.CONFLICT, {
+            required: amount,
+            available: quota.balance,
+            missing: amount - quota.balance,
+          });
+        }
+
+        await tx.quota.update({
+          where: { userId },
+          data: {
+            balance: { decrement: amount },
+            lockedAmount: { increment: amount },
+          },
+        });
       });
-
-      if (!quota) {
-        throw new Error("Quota not found");
-      }
-
-      if (quota.balance < amount) {
-        const error = new Error(
-          `Insufficient balance. Required: ${amount}, Available: ${quota.balance}`
+    } catch (error) {
+      if (error instanceof Error) {
+        throw this.createError(
+          `Reserve quota error: ${error.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR
         );
-        (
-          error as any
-        ).userMessage = `Insufficient balance. You need ${amount} credits but only have ${quota.balance} available.`;
-        throw error;
       }
-
-      await tx.quota.update({
-        where: { userId },
-        data: {
-          balance: { decrement: amount },
-          lockedAmount: { increment: amount },
-        },
-      });
-    });
+      throw error;
+    }
   }
 
   async finalizeQuotaUsage(

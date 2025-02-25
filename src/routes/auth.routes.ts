@@ -1,27 +1,48 @@
 import express from "express";
 import { authLimiter } from "../config/rateLimiter";
+import * as authController from "../controllers/auth.controller";
 import {
-  register,
-  login,
-  refreshToken,
-  requestEmailVerification,
-  verifyEmail,
-  requestPasswordReset,
-  resetPassword,
-} from "../controllers/auth.controller";
+  validateRequestBody,
+  validateQueryParams,
+} from "../middleware/validator.middleware";
 
 const router = express.Router();
 
-router.post("/login", login);
-router.post("/register", register);
+router.post(
+  "/register",
+  validateRequestBody(["name", "email", "password"]),
+  authController.register
+);
+
+router.post(
+  "/login",
+  validateRequestBody(["email", "password"]),
+  authController.login
+);
+
 router.post(
   "/request-email-verification",
+  validateRequestBody(["email"]),
   authLimiter,
-  requestEmailVerification
+  authController.requestEmailVerification
 );
-router.get("/verify-email", verifyEmail);
-router.post("/request-password-reset", authLimiter, requestPasswordReset);
-router.post("/reset-password", resetPassword);
-router.post("/refresh-token", refreshToken);
+router.get("/verify-email", authController.verifyEmail);
+router.post(
+  "/request-password-reset",
+  validateRequestBody(["email"]),
+  authLimiter,
+  authController.requestPasswordReset
+);
+router.post(
+  "/reset-password",
+  validateRequestBody(["newPassword"]),
+  validateQueryParams(["token"]),
+  authController.resetPassword
+);
+router.post(
+  "/refresh-token",
+  validateRequestBody(["refreshToken"]),
+  authController.refreshToken
+);
 
 export default router;

@@ -1,26 +1,31 @@
 import { Request, Response } from "express";
 import authService from "../services/auth.service";
 import logger from "../config/logger";
+import { ResponseUtil, HttpStatus } from "../utils/response.util";
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   const { name, email, password } = req.body;
 
   if (!email || !password || !name) {
-    logger.error("All fields are required");
-    res.status(400).json({ message: "All fields are required" });
+    ResponseUtil.validationError(res, ["All fields are required"]);
     return;
   }
 
   try {
-    await authService.register(name, email, password);
-    logger.info("User registered successfully");
-    res.json({
-      message:
-        "User registered successfully. Please check your email to verify your account.",
-    });
+    const user = await authService.register(name, email, password);
+    logger.info(`User registered successfully: ${email}`);
+    ResponseUtil.created(
+      res,
+      "User registered successfully. Please check your email to verify your account.",
+      { email: user.email }
+    );
   } catch (error: any) {
-    logger.error(error.message);
-    res.status(400).json({ message: error.message });
+    logger.error(`Registration error for ${email}: ${error.message}`);
+    ResponseUtil.error(
+      res,
+      error.message,
+      error.statusCode || HttpStatus.INTERNAL_SERVER_ERROR
+    );
   }
 };
 
@@ -28,18 +33,28 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    logger.error("Email and password are required");
-    res.status(400).json({ message: "Email and password are required" });
+    ResponseUtil.validationError(
+      res,
+      [
+        !email ? "Email is required" : null,
+        !password ? "Password is required" : null,
+      ].filter(Boolean) as string[],
+      "Invalid credentials"
+    );
     return;
   }
 
   try {
-    const tokens = await authService.login(email, password);
-    logger.info("User logged in successfully");
-    res.json(tokens);
+    const result = await authService.login(email, password);
+    logger.info(`User logged in successfully: ${email}`);
+    ResponseUtil.success(res, "Login successful", result);
   } catch (error: any) {
-    logger.error(error.message);
-    res.status(401).json({ message: error.message });
+    logger.error(`Login error for ${email}: ${error.message}`);
+    ResponseUtil.error(
+      res,
+      error.message,
+      error.statusCode || HttpStatus.INTERNAL_SERVER_ERROR
+    );
   }
 };
 
@@ -50,18 +65,20 @@ export const refreshToken = async (
   const { refreshToken } = req.body;
 
   if (!refreshToken) {
-    logger.error("Refresh token is required");
-    res.status(400).json({ message: "Refresh token is required" });
+    ResponseUtil.validationError(res, ["Refresh token is required"]);
     return;
   }
 
   try {
     const result = await authService.refreshAccessToken(refreshToken);
-    logger.info("Access token refreshed successfully");
-    res.json(result);
+    ResponseUtil.success(res, "Token refreshed successfully", result);
   } catch (error: any) {
-    logger.error(error.message);
-    res.status(401).json({ message: error.message });
+    logger.error(`Token refresh error: ${error.message}`);
+    ResponseUtil.error(
+      res,
+      error.message,
+      error.statusCode || HttpStatus.INTERNAL_SERVER_ERROR
+    );
   }
 };
 
@@ -72,17 +89,20 @@ export const requestEmailVerification = async (
   const { email } = req.body;
 
   if (!email) {
-    logger.error("Email is required");
-    res.status(400).json({ message: "Email is required" });
+    ResponseUtil.validationError(res, ["Email is required"]);
     return;
   }
 
   try {
     await authService.requestEmailVerification(email);
-    res.json({ message: "Verification email sent" });
+    ResponseUtil.success(res, `Verification email sent to ${email}`);
   } catch (error: any) {
-    logger.error(error.message);
-    res.status(400).json({ message: error.message });
+    logger.error(`Email verification request error: ${error.message}`);
+    ResponseUtil.error(
+      res,
+      error.message,
+      error.statusCode || HttpStatus.INTERNAL_SERVER_ERROR
+    );
   }
 };
 
@@ -91,20 +111,21 @@ export const verifyEmail = async (
   res: Response
 ): Promise<void> => {
   const token = req.query.token as string;
+  const frontendUrl = process.env.FRONTEND_URL;
 
   if (!token) {
-    logger.error("Token is required");
-    res.redirect(`${process.env.FRONTEND_URL}/auth/login`);
+    res.redirect(`${frontendUrl}/auth/login?error=Token is required`);
     return;
   }
 
   try {
     await authService.verifyEmail(token);
-    logger.info("Email verified successfully");
-    res.redirect(`${process.env.FRONTEND_URL}/auth/login`);
-  } catch (error) {
-    logger.error("Invalid or expired token");
-    res.redirect(`${process.env.FRONTEND_URL}/auth/login`);
+    res.redirect(
+      `${frontendUrl}/auth/login?success=Email verified successfully`
+    );
+  } catch (error: any) {
+    logger.error(`Email verification error: ${error.message}`);
+    res.redirect(`${frontendUrl}/auth/login?error=${error.message}`);
   }
 };
 
@@ -115,17 +136,20 @@ export const requestPasswordReset = async (
   const { email } = req.body;
 
   if (!email) {
-    logger.error("Email is required");
-    res.status(400).json({ message: "Email is required" });
+    ResponseUtil.validationError(res, ["Email is required"]);
     return;
   }
 
   try {
     await authService.requestPasswordReset(email);
-    res.json({ message: "Password reset mail sent" });
+    ResponseUtil.success(res, "Password reset instructions sent to your email");
   } catch (error: any) {
-    logger.error(error.message);
-    res.status(400).json({ message: error.message });
+    logger.error(`Password reset request error: ${error.message}`);
+    ResponseUtil.error(
+      res,
+      error.message,
+      error.statusCode || HttpStatus.INTERNAL_SERVER_ERROR
+    );
   }
 };
 
@@ -137,17 +161,26 @@ export const resetPassword = async (
   const { newPassword } = req.body;
 
   if (!token || !newPassword) {
-    logger.error("Token and new password are required");
-    res.status(400).json({ message: "Token and new password are required" });
+    ResponseUtil.validationError(
+      res,
+      [
+        !token ? "Reset token is required" : null,
+        !newPassword ? "New password is required" : null,
+      ].filter(Boolean) as string[],
+      "Validation failed"
+    );
     return;
   }
 
   try {
     await authService.resetPassword(token, newPassword);
-    logger.info("Password reset successfully");
-    res.json({ message: "Password reset successfully" });
+    ResponseUtil.success(res, "Password reset successful");
   } catch (error: any) {
-    logger.error(error.message);
-    res.status(400).json({ message: error.message });
+    logger.error(`Password reset error: ${error.message}`);
+    ResponseUtil.error(
+      res,
+      error.message,
+      error.statusCode || HttpStatus.INTERNAL_SERVER_ERROR
+    );
   }
 };

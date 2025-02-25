@@ -1,20 +1,21 @@
-import e, { Request, Response, RequestHandler } from "express";
+import { Request, Response, RequestHandler, response } from "express";
 import prisma from "../config/db";
 import logger from "../config/logger";
 import clientService from "../services/client.service";
-import {
-  handleResponse,
-  handleAuthError,
-  handleServerError,
-  handleNotFoundError,
-} from "../utils/response.util";
+import { ResponseUtil } from "../utils/response.util";
 
 export const connectClient: RequestHandler = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   const userId = req.user?.id;
-  if (!userId) return handleAuthError(res);
+  if (!userId) {
+    ResponseUtil.unauthorized(
+      res,
+      "User not found. Please login and try again."
+    );
+    return;
+  }
 
   try {
     const existingClient = await prisma.client.findFirst({
@@ -23,45 +24,50 @@ export const connectClient: RequestHandler = async (
     });
 
     if (!existingClient) {
-      const clientId = await clientService.connectClient(userId);
-      return handleResponse(res, 200, {
-        success: true,
-        message: "Initializing new connection",
+      ResponseUtil.success(res, "Connection in progress. Please scan QR code", {
         status: "INITIALIZING",
-        clientId,
       });
+
+      clientService.connectClient(userId);
+      return;
     }
 
     switch (existingClient.status) {
       case "INITIALIZING":
-        return handleResponse(res, 200, {
-          success: true,
-          message: "Connection in progress",
-          status: existingClient.status,
-          clientId: existingClient.id,
-        });
+        ResponseUtil.success(
+          res,
+          "Your connection is in progress. Please scan QR code",
+          {
+            clientId: existingClient.id,
+            status: existingClient.status,
+          }
+        );
+        return;
 
       case "CONNECTED":
-        return handleResponse(res, 200, {
-          success: true,
-          message: "Already connected",
-          status: existingClient.status,
+        ResponseUtil.success(res, "Client already connected", {
           clientId: existingClient.id,
+          status: existingClient.status,
         });
+        return;
 
       case "DISCONNECTED":
       case "LOGOUT":
-        await clientService.connectClient(userId);
-        return handleResponse(res, 200, {
-          success: true,
-          message: "Reconnecting...",
-          status: "INITIALIZING",
-          clientId: existingClient.id,
-        });
+        ResponseUtil.success(
+          res,
+          "Connection in progress. Please scan QR code",
+          {
+            clientId: existingClient.id,
+            status: "INITIALIZING",
+          }
+        );
+
+        clientService.connectClient(userId);
+        return;
     }
   } catch (error: any) {
     logger.error(`Connect error: ${error.message}`);
-    handleServerError(res, error);
+    ResponseUtil.internalServerError(res, error);
   }
 };
 
@@ -70,7 +76,13 @@ export const disconnectClient: RequestHandler = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.id;
-  if (!userId) return handleAuthError(res);
+  if (!userId) {
+    ResponseUtil.unauthorized(
+      res,
+      "User not found. Please login and try again."
+    );
+    return;
+  }
 
   try {
     const existingClient = await prisma.client.findFirst({
@@ -79,34 +91,41 @@ export const disconnectClient: RequestHandler = async (
     });
 
     if (!existingClient) {
-      return handleNotFoundError(res, "Client not found");
+      ResponseUtil.notFound(res, "Client not found");
+      return;
     }
 
     switch (existingClient.status) {
       case "CONNECTED":
       case "INITIALIZING":
-      case "DISCONNECTED":
         await clientService.disconnectClient(userId);
         const updatedClient = await prisma.client.findFirst({
           where: { userId },
           select: { status: true },
         });
-        return handleResponse(res, 200, {
-          success: true,
-          message: "Disconnecting...",
+        ResponseUtil.success(res, "Client disconnected", {
+          clientId: existingClient.id,
           status: updatedClient?.status,
         });
+        return;
 
-      case "LOGOUT":
-        return handleResponse(res, 200, {
-          success: true,
-          message: "Already disconnected",
+      case "DISCONNECTED":
+        ResponseUtil.success(res, "Client already disconnected", {
+          clientId: existingClient.id,
           status: existingClient.status,
         });
+        return;
+
+      case "LOGOUT":
+        ResponseUtil.success(res, "User already logged out", {
+          clientId: existingClient.id,
+          status: existingClient.status,
+        });
+        return;
     }
   } catch (error: any) {
     logger.error(`Disconnect error: ${error.message}`);
-    handleServerError(res, error);
+    ResponseUtil.internalServerError(res, error);
   }
 };
 
@@ -115,7 +134,13 @@ export const deleteDevice: RequestHandler = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.id;
-  if (!userId) return handleAuthError(res);
+  if (!userId) {
+    ResponseUtil.unauthorized(
+      res,
+      "User not found. Please login and try again."
+    );
+    return;
+  }
 
   try {
     const existingClient = await prisma.client.findFirst({
@@ -124,7 +149,8 @@ export const deleteDevice: RequestHandler = async (
     });
 
     if (!existingClient) {
-      return handleNotFoundError(res, "Client not found");
+      ResponseUtil.notFound(res, "Client not found");
+      return;
     }
 
     switch (existingClient.status) {
@@ -132,22 +158,22 @@ export const deleteDevice: RequestHandler = async (
       case "INITIALIZING":
       case "DISCONNECTED":
         await clientService.deleteDevice(userId);
-        return handleResponse(res, 200, {
-          success: true,
-          message: "Device deleted",
-          status: existingClient.status,
+        ResponseUtil.success(res, "Device deleted", {
+          clientId: existingClient.id,
+          status: "LOGOUT",
         });
+        return;
 
       case "LOGOUT":
-        return handleResponse(res, 200, {
-          success: true,
-          message: "Device already deleted",
+        ResponseUtil.success(res, "User already logged out", {
+          clientId: existingClient.id,
           status: existingClient.status,
         });
+        return;
     }
   } catch (error: any) {
     logger.error(`Delete device error: ${error.message}`);
-    handleServerError(res, error);
+    ResponseUtil.internalServerError(res, error);
   }
 };
 
@@ -156,27 +182,33 @@ export const getClientStatus: RequestHandler = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.id;
-  if (!userId) return handleAuthError(res);
+  if (!userId) {
+    ResponseUtil.unauthorized(
+      res,
+      "User not found. Please login and try again."
+    );
+    return;
+  }
 
   try {
     const client = await prisma.client.findFirst({
       where: { userId },
-      select: { status: true, lastActive: true },
+      select: { id: true, status: true, lastActive: true },
     });
 
     if (!client) {
-      return handleNotFoundError(res, "Client not found");
+      ResponseUtil.notFound(res, "Client not found");
+      return;
     }
 
-    return handleResponse(res, 200, {
-      success: true,
-      message: "Client status",
+    ResponseUtil.success(res, "Client status retrieved", {
+      clientId: client.id,
       status: client.status,
       lastActive: client.lastActive,
     });
   } catch (error: any) {
     logger.error(`Get client status error: ${error.message}`);
-    handleServerError(res, error);
+    ResponseUtil.internalServerError(res, error);
   }
 };
 
@@ -185,7 +217,13 @@ export const getClientQr: RequestHandler = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.id;
-  if (!userId) return handleAuthError(res);
+  if (!userId) {
+    ResponseUtil.unauthorized(
+      res,
+      "User not found. Please login and try again."
+    );
+    return;
+  }
 
   try {
     const existingClient = await prisma.client.findFirst({
@@ -194,35 +232,37 @@ export const getClientQr: RequestHandler = async (
     });
 
     if (!existingClient) {
-      return handleNotFoundError(res, "Client not found");
+      ResponseUtil.notFound(res, "Client not found");
+      return;
     }
 
     switch (existingClient.status) {
       case "INITIALIZING":
-        return handleResponse(res, 200, {
-          success: true,
-          message: "Connection in progress",
+        ResponseUtil.success(res, "QR code generation in progress", {
+          clientId: existingClient.id,
+          status: existingClient.status,
+        });
+        return;
+
+      case "CONNECTED":
+        ResponseUtil.success(res, "QR code already generated", {
+          clientId: existingClient.id,
           status: existingClient.status,
           qrCode: existingClient.lastQrCode,
         });
-
-      case "CONNECTED":
-        return handleResponse(res, 200, {
-          success: true,
-          message: "Client already connected",
-          status: existingClient.status,
-        });
+        return;
 
       case "DISCONNECTED":
       case "LOGOUT":
-        return handleResponse(res, 200, {
-          success: true,
-          message: "User already logged out or disconnected",
+        ResponseUtil.success(res, "User logged out. Please connect again", {
+          clientId: existingClient.id,
           status: existingClient.status,
+          qrCode: null,
         });
+        return;
     }
   } catch (error: any) {
     logger.error(`Get QR code error: ${error.message}`);
-    handleServerError(res, error);
+    ResponseUtil.internalServerError(res, error);
   }
 };

@@ -5,6 +5,7 @@ import EventEmitter from "events";
 import messageRepository from "../repositories/message.repository";
 import QuotaService from "./quota.service";
 import { ClientService } from "./client.service";
+import { HttpStatus } from "../utils/response.util";
 
 export class MessageService extends EventEmitter {
   private readonly BATCH_SIZE = 20;
@@ -13,52 +14,79 @@ export class MessageService extends EventEmitter {
   private readonly MAX_RETRIES = 3;
   private readonly PDF_SEND_DELAY = 5000;
 
-  async sendMessage(
+  private createError(message: string, statusCode: HttpStatus): ServiceError {
+    return { message, statusCode };
+  }
+
+  private async sendMessage(
     userId: string,
     number: string,
     content: string,
     mediaUrl?: string
-  ): Promise<void> {
-    const whatsappNumber = formatToWhatsAppNumber(number);
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const whatsappNumber = formatToWhatsAppNumber(number);
+      const isRegistered = await this.validateNumber(userId, whatsappNumber);
 
-    const isRegistered = await this.validateNumber(userId, whatsappNumber);
-    if (!isRegistered) {
-      throw new Error("Number not registered on WhatsApp");
-    }
-
-    const messageContent = content.toString();
-
-    const client = await ClientService.getInstance().getClient(userId);
-    if (!client) {
-      throw new Error("WhatsApp client not connected");
-    }
-
-    if (mediaUrl) {
-      try {
-        const media = await MessageMedia.fromUrl(mediaUrl, {
-          unsafeMime: true,
-        });
-        const isPdf =
-          mediaUrl.toLowerCase().endsWith(".pdf") ||
-          mediaUrl.includes("/pdf/") ||
-          mediaUrl.includes("application/pdf");
-
-        if (isPdf) {
-          await this.sendPdfWithRetry(
-            whatsappNumber,
-            { content: messageContent, media: mediaUrl },
-            client
-          );
-        } else {
-          await client.sendMessage(whatsappNumber, media, {
-            caption: messageContent,
-          });
-        }
-      } catch (error) {
-        throw new Error(`Failed to send media: ${error}`);
+      if (!isRegistered) {
+        return {
+          success: false,
+          error: "Number not registered on WhatsApp",
+        };
       }
-    } else {
-      await client.sendMessage(whatsappNumber, messageContent);
+
+      const client = await ClientService.getInstance().getClient(userId);
+      if (!client) {
+        return {
+          success: false,
+          error: "WhatsApp client not connected",
+        };
+      }
+
+      if (mediaUrl) {
+        try {
+          const media = await MessageMedia.fromUrl(mediaUrl, {
+            unsafeMime: true,
+          });
+          const isPdf =
+            mediaUrl.toLowerCase().endsWith(".pdf") ||
+            mediaUrl.includes("/pdf/") ||
+            mediaUrl.includes("application/pdf");
+
+          if (isPdf) {
+            const sent = await this.sendPdfWithRetry(
+              whatsappNumber,
+              { content, media: mediaUrl },
+              client
+            );
+            if (!sent) {
+              return {
+                success: false,
+                error: "Failed to send PDF after retries",
+              };
+            }
+          } else {
+            await client.sendMessage(whatsappNumber, media, {
+              caption: content,
+            });
+          }
+        } catch (error) {
+          return {
+            success: false,
+            error: `Failed to send media: ${error}`,
+          };
+        }
+      } else {
+        await client.sendMessage(whatsappNumber, content);
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      };
     }
   }
 
@@ -77,7 +105,10 @@ export class MessageService extends EventEmitter {
 
   async processBatch(messages: MessageRecord[], userId: string): Promise<void> {
     if (!userId) {
-      throw new Error("userId is required for quota management");
+      throw this.createError(
+        "userId is required for quota management",
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     const totalMessages = messages.length;
@@ -95,20 +126,21 @@ export class MessageService extends EventEmitter {
       for (const batch of batches) {
         await Promise.all(
           batch.map(async (message) => {
-            try {
-              await this.sendMessage(
-                userId,
-                message.number,
-                message.content,
-                message.mediaUrl ?? undefined
-              );
+            const result = await this.sendMessage(
+              userId,
+              message.number,
+              message.content,
+              message.mediaUrl ?? undefined
+            );
+
+            if (result.success) {
               await messageRepository.updateMessageStatus(message.id, "SENT");
               successCount++;
-            } catch (error: any) {
+            } else {
               await messageRepository.updateMessageStatus(
                 message.id,
                 "FAILED",
-                error.message
+                result.error
               );
               failedCount++;
             }

@@ -1,11 +1,7 @@
 import { Request, Response, RequestHandler } from "express";
 import QuotaService from "../services/quota.service";
 import logger from "../config/logger";
-import {
-  handleResponse,
-  handleAuthError,
-  handleServerError,
-} from "../utils/response.util";
+import { ResponseUtil } from "../utils/response.util";
 import prisma from "../config/db";
 
 export const addQuota: RequestHandler = async (
@@ -13,22 +9,18 @@ export const addQuota: RequestHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.body.userId;
-    const amount = req.body.amount;
+    const { userId, amount } = req.body;
 
-    if (!userId) {
-      handleResponse(res, 400, {
-        success: false,
-        message: "userId is required",
-      });
-      return;
-    }
-
-    if (!amount || amount <= 0) {
-      handleResponse(res, 400, {
-        success: false,
-        message: "Amount is required and must be greater than 0",
-      });
+    if (!userId || !amount || amount <= 0) {
+      ResponseUtil.validationError(
+        res,
+        [
+          !userId ? "User ID is required" : null,
+          !amount ? "Amount is required" : null,
+          amount <= 0 ? "Amount must be greater than 0" : null,
+        ].filter(Boolean) as string[],
+        "Invalid quota parameters"
+      );
       return;
     }
 
@@ -37,18 +29,19 @@ export const addQuota: RequestHandler = async (
     });
 
     if (!user) {
-      await QuotaService.createQuota(userId, amount);
-    } else {
-      await QuotaService.addQuota(userId, amount);
+      ResponseUtil.notFound(res, "User quota record not found");
+      return;
     }
 
-    handleResponse(res, 200, {
-      success: true,
-      message: "Quota added successfully",
+    await QuotaService.addQuota(userId, amount);
+
+    ResponseUtil.success(res, "Quota added successfully", {
+      userId,
+      addedAmount: amount,
     });
   } catch (error: any) {
     logger.error(`Add quota error: ${error.message}`);
-    handleServerError(res, error);
+    ResponseUtil.internalServerError(res, error);
   }
 };
 
@@ -59,22 +52,27 @@ export const checkQuota: RequestHandler = async (
   try {
     const userId = req.user?.id;
     if (!userId) {
-      handleAuthError(res);
+      ResponseUtil.unauthorized(res, "User authentication required");
       return;
     }
 
-    const { balance, lockedAmount } = await QuotaService.getAvailableBalance(
-      userId
-    );
-
-    handleResponse(res, 200, {
-      success: true,
-      message: "Quota retrieved successfully",
-      balance,
-      lockedAmount,
-    });
+    try {
+      const quotaData = await QuotaService.getAvailableBalance(userId);
+      ResponseUtil.success(res, "Quota retrieved successfully", {
+        userId,
+        balance: quotaData.balance,
+        lockedAmount: quotaData.lockedAmount,
+        availableBalance: quotaData.balance - quotaData.lockedAmount,
+      });
+    } catch (error: any) {
+      if (error.message === "Quota not found") {
+        ResponseUtil.notFound(res, "Quota not found for this user");
+        return;
+      }
+      throw error;
+    }
   } catch (error: any) {
     logger.error(`Check quota error: ${error.message}`);
-    handleServerError(res, error);
+    ResponseUtil.internalServerError(res, error);
   }
 };

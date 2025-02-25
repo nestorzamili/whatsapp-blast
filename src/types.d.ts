@@ -17,7 +17,7 @@ declare global {
   interface MessageBase {
     number: string;
     content: string;
-    mediaUrl?: string | null; // Change this to allow null
+    mediaUrl?: string | null;
   }
 
   interface Message extends MessageBase {
@@ -60,6 +60,21 @@ declare global {
   }
 
   interface FileSystemError extends Error {
+    code?: string;
+  }
+
+  interface ServiceError {
+    message: string;
+    statusCode: HttpStatus;
+    details?: Record<string, any>;
+  }
+
+  interface ApiResponse<T = any> {
+    status: boolean;
+    message: string;
+    data?: T | null;
+    errors?: string[];
+    path?: string;
     code?: string;
   }
 }
