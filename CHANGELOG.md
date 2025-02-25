@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.1.0](https://github.com/nestorzamili/whatsapp-blast/compare/v4.0.1...v4.1.0) (2025-02-25)
+
+
+### Features
+
+* rename project to Blastify, enhance request validation, and improve response handling ([2fde4ad](https://github.com/nestorzamili/whatsapp-blast/commit/2fde4add9a8091bdf4cae4c48ed505f0e677e920))
+
 ## [4.0.1](https://github.com/nestorzamili/whatsapp-blast/compare/v4.0.0...v4.0.1) (2025-02-25)
 
 
