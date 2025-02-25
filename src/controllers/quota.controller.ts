@@ -13,26 +13,21 @@ export const addQuota: RequestHandler = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.body.userId;
     const amount = req.body.amount;
 
     if (!userId) {
-      handleAuthError(res);
-      return;
-    }
-
-    if (!amount) {
       handleResponse(res, 400, {
         success: false,
-        message: "Amount is required",
+        message: "userId is required",
       });
       return;
     }
 
-    if (amount <= 0) {
+    if (!amount || amount <= 0) {
       handleResponse(res, 400, {
         success: false,
-        message: "Amount must be greater than 0",
+        message: "Amount is required and must be greater than 0",
       });
       return;
     }
