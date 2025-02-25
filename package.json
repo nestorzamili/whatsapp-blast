@@ -5,8 +5,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "nodemon --ext ts --exec ts-node src/server.ts",
-    "start": "node dist/server.js",
-    "postinstall": "npx prisma generate"
+    "start": "node dist/server.js"
   },
   "keywords": [
     "whatsapp",
