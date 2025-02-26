@@ -241,6 +241,7 @@ export const getClientQr: RequestHandler = async (
         ResponseUtil.success(res, "QR code generation in progress", {
           clientId: existingClient.id,
           status: existingClient.status,
+          qrCode: existingClient.lastQrCode,
         });
         return;
 
