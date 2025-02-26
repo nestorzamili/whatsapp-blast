@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.1.6](https://github.com/nestorzamili/blastify/compare/v4.1.5...v4.1.6) (2025-02-26)
+
+
+### Bug Fixes
+
+* update Docker workflow to change package name from whatsapp-blast to blastify ([1e15a93](https://github.com/nestorzamili/blastify/commit/1e15a93da1611200ca27fb41e3bf27c0ad8afac3))
+
 ## [4.1.5](https://github.com/nestorzamili/whatsapp-blast/compare/v4.1.4...v4.1.5) (2025-02-26)
 
 
