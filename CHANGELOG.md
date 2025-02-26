@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.1.5](https://github.com/nestorzamili/whatsapp-blast/compare/v4.1.4...v4.1.5) (2025-02-26)
+
+
+### Bug Fixes
+
+* update .gitignore and include last QR code in client response ([b623917](https://github.com/nestorzamili/whatsapp-blast/commit/b623917f44ccb79ae67cd7a6f72c2649a781fb78))
+
 ## [4.1.4](https://github.com/nestorzamili/whatsapp-blast/compare/v4.1.3...v4.1.4) (2025-02-25)
 
 
