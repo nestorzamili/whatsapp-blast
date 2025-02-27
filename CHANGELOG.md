@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.2.0](https://github.com/nestorzamili/blastify/compare/v4.1.6...v4.2.0) (2025-02-27)
+
+
+### Features
+
+* add getContact endpoint and retrieve user contacts ([db72945](https://github.com/nestorzamili/blastify/commit/db72945a27d4b708e91aa0edc3e1cac180fa9b14))
+
+
+### Bug Fixes
+
+* extend access token expiration from 15 minutes to 1 hour ([0b68b00](https://github.com/nestorzamili/blastify/commit/0b68b0051b0da961b0bb79879071d2fdb47e5ca3))
+* remove success response logging for email verification request ([4ad07ae](https://github.com/nestorzamili/blastify/commit/4ad07aec4f3f611034490a29eb20d9f2057059a6))
+* update DateTime fields to use Timestamptz in Prisma schema ([ac8b219](https://github.com/nestorzamili/blastify/commit/ac8b2199014e42b94641dae1ad89d5f5d7a1bdba))
+
 ## [4.1.6](https://github.com/nestorzamili/blastify/compare/v4.1.5...v4.1.6) (2025-02-26)
 
 
