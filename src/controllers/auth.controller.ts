@@ -95,7 +95,6 @@ export const requestEmailVerification = async (
 
   try {
     await authService.requestEmailVerification(email);
-    ResponseUtil.success(res, `Verification email sent to ${email}`);
   } catch (error: any) {
     logger.error(`Email verification request error: ${error.message}`);
     ResponseUtil.error(
