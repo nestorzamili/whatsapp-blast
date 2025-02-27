@@ -16,26 +16,28 @@ model user {
   role              String
   isVerified        Boolean   @default(false)
   verificationToken String?
-  verifyExpires     DateTime?
+  verifyExpires     DateTime? @db.Timestamptz
   resetToken        String?
-  resetTokenExpires DateTime?
+  resetTokenExpires DateTime? @db.Timestamptz
   clients           client[]
   quota             quota?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime  @default(now()) @db.Timestamptz
+  updatedAt         DateTime  @updatedAt @db.Timestamptz
 }
 
 model client {
-  id         String       @id @default(uuid())
-  userId     String
-  user       user         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  session    String?
-  status     ClientStatus @default(INITIALIZING)
-  lastActive DateTime?
-  lastQrCode String?
-  messages   message[]
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id             String       @id @default(uuid())
+  userId         String
+  user           user         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session        String?
+  status         ClientStatus @default(INITIALIZING)
+  lastActive     DateTime?    @db.Timestamptz
+  lastQrCode     String?
+  whatsappNumber String?
+  whatsappName   String?
+  messages       message[]
+  createdAt      DateTime     @default(now()) @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @db.Timestamptz
 }
 
 model message {
@@ -47,7 +49,7 @@ model message {
   status    MessageStatus @default(PENDING)
   mediaUrl  String?
   error     String?
-  createdAt DateTime      @default(now())
+  createdAt DateTime      @default(now()) @db.Timestamptz
 }
 
 model quota {
@@ -56,8 +58,8 @@ model quota {
   user         user     @relation(fields: [userId], references: [id], onDelete: Cascade)
   balance      Int      @default(0)
   lockedAmount Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now()) @db.Timestamptz
+  updatedAt    DateTime @updatedAt @db.Timestamptz
 }
 
 enum ClientStatus {
