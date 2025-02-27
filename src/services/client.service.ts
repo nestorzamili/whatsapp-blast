@@ -20,6 +20,8 @@ interface ClientUpdateData {
   lastQrCode?: string | null;
   lastActive?: Date | null;
   session?: string | null;
+  whatsappNumber?: string | null;
+  whatsappName?: string | null;
 }
 
 enum DisconnectReason {
@@ -197,12 +199,18 @@ export class ClientService extends EventEmitter {
     logger.info(`Client ${clientId} is ready`);
     this.activeClients.set(clientId, instance);
 
+    const info = instance.info;
+    const whatsappNumber = info?.wid?.user;
+    const whatsappName = info?.pushname;
+
     try {
       await this.updateClientStatus(clientId, {
         status: ClientStatus.CONNECTED,
         lastActive: new Date(),
         lastQrCode: null,
         session: `session-${userId}`,
+        whatsappNumber,
+        whatsappName,
       });
 
       this.startInactivityTimer(clientId);
@@ -407,24 +415,29 @@ export class ClientService extends EventEmitter {
     try {
       const sanitizedData: ClientUpdateData = {};
 
-      if (
-        updateData.status &&
-        Object.values(ClientStatus).includes(updateData.status)
-      ) {
-        sanitizedData.status = updateData.status;
-      }
+      const allowedFields = {
+        status: (value: ClientStatus) =>
+          Object.values(ClientStatus).includes(value),
+        lastQrCode: () => true,
+        lastActive: () => true,
+        session: () => true,
+        whatsappNumber: () => true,
+        whatsappName: () => true,
+      };
 
-      if ("lastQrCode" in updateData) {
-        sanitizedData.lastQrCode = updateData.lastQrCode;
-      }
+      Object.keys(updateData).forEach((key) => {
+        const typedKey = key as keyof ClientUpdateData;
+        const value = updateData[typedKey];
 
-      if ("lastActive" in updateData) {
-        sanitizedData.lastActive = updateData.lastActive;
-      }
+        if (value === undefined) return;
 
-      if ("session" in updateData) {
-        sanitizedData.session = updateData.session;
-      }
+        if (
+          typedKey in allowedFields &&
+          (allowedFields as any)[typedKey](value)
+        ) {
+          (sanitizedData as any)[typedKey] = value;
+        }
+      });
 
       await prisma.client.update({
         where: { id: clientId },
@@ -567,6 +580,38 @@ export class ClientService extends EventEmitter {
       return client;
     } catch (error) {
       logger.error(`Error getting client for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getContacts(userId: string): Promise<any[]> {
+    try {
+      const client = await this.getClient(userId);
+      if (!client) {
+        throw this.createError("Client not found", HttpStatus.NOT_FOUND, {
+          userId,
+        });
+      }
+
+      const contacts = await client.getContacts();
+
+      const excludedNumbers = ["0", "13135550002", "16505361212"];
+
+      const filteredContacts = contacts.filter(
+        (contacts) =>
+          contacts.id.server === "c.us" &&
+          contacts.isMyContact &&
+          contacts.isWAContact &&
+          !contacts.isGroup &&
+          !contacts.isBusiness &&
+          !excludedNumbers.includes(contacts.number) &&
+          contacts.number &&
+          contacts.number.length > 8
+      );
+
+      return filteredContacts;
+    } catch (error) {
+      logger.error(`Error getting contacts for user ${userId}:`, error);
       throw error;
     }
   }

@@ -46,7 +46,6 @@ export class AuthService {
       });
 
       await sendVerificationEmail(email, verificationToken);
-      logger.info(`Verification email sent to ${email}`);
       return user;
     } catch (error) {
       logger.error(`Failed to register user: ${error}`);

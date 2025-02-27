@@ -5,6 +5,7 @@ import {
   deleteDevice,
   getClientStatus,
   getClientQr,
+  getContact,
 } from "../controllers/client.controller";
 import {
   authMiddleware,
@@ -21,5 +22,6 @@ router.post("/disconnect", disconnectClient);
 router.post("/delete-device", deleteDevice);
 router.get("/", getClientStatus);
 router.get("/qr", getClientQr);
+router.get("/get-contact", getContact);
 
 export default router;

@@ -3,6 +3,7 @@ import prisma from "../config/db";
 import logger from "../config/logger";
 import clientService from "../services/client.service";
 import { ResponseUtil } from "../utils/response.util";
+import { count } from "console";
 
 export const connectClient: RequestHandler = async (
   req: Request,
@@ -264,6 +265,47 @@ export const getClientQr: RequestHandler = async (
     }
   } catch (error: any) {
     logger.error(`Get QR code error: ${error.message}`);
+    ResponseUtil.internalServerError(res, error);
+  }
+};
+
+export const getContact: RequestHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.id;
+  if (!userId) {
+    ResponseUtil.unauthorized(
+      res,
+      "User not found. Please login and try again."
+    );
+    return;
+  }
+
+  try {
+    const client = await prisma.client.findFirst({
+      where: { userId, status: "CONNECTED" },
+    });
+
+    if (!client) {
+      ResponseUtil.notFound(
+        res,
+        "No connected client found. Please connect and try again."
+      );
+      return;
+    }
+
+    const contacts = await clientService.getContacts(userId);
+
+    ResponseUtil.success(res, "Contacts retrieved successfully", {
+      count: contacts.length,
+      contacts: contacts.map((contact) => ({
+        name: contact.name || contact.pushname || "Unknown",
+        number: contact.number,
+      })),
+    });
+  } catch (error: any) {
+    logger.info(`Get contacts error: ${error.message}`);
     ResponseUtil.internalServerError(res, error);
   }
 };

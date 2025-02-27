@@ -5,6 +5,4 @@ prisma/migrations/
 sessions/
 .wwebjs_cache
 dist/
-docker-compose.backend.yml
-docker-compose.nginx.yml
-nginx.conf
+setup-server/
