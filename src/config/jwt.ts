@@ -35,7 +35,7 @@ const verifyJwtToken = (token: string, secret: string): VerificationResult => {
 };
 
 export const generateAccessToken = (payload: UserPayload) =>
-  generateToken(payload, JWT_SECRET, "15m");
+  generateToken(payload, JWT_SECRET, "1h");
 
 export const generateRefreshToken = (payload: UserPayload) =>
   generateToken(payload, JWT_REFRESH_SECRET, "7d");
