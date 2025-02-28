@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.2.1](https://github.com/nestorzamili/blastify/compare/v4.2.0...v4.2.1) (2025-02-28)
+
+
+### Bug Fixes
+
+* ensure session cleanup occurs on client logout ([597fe0e](https://github.com/nestorzamili/blastify/commit/597fe0e1f4a4132f940afd2a888801c05607a3cb))
+
 ## [4.2.0](https://github.com/nestorzamili/blastify/compare/v4.1.6...v4.2.0) (2025-02-27)
 
 
