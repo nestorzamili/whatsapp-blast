@@ -385,8 +385,6 @@ export class ClientService extends EventEmitter {
     try {
       const instance = this.activeClients.get(client.id);
 
-      await this.cleanupSession(userId);
-
       if (!instance) {
         await this.updateClientStatus(client.id, {
           status: ClientStatus.LOGOUT,
@@ -398,6 +396,11 @@ export class ClientService extends EventEmitter {
       this.stopInactivityTimer(client.id);
       await instance.logout();
       await this.safeDestroyInstance(client.id);
+      await this.cleanupSession(userId);
+      await this.updateClientStatus(client.id, {
+        status: ClientStatus.LOGOUT,
+        session: null,
+      });
       this.emit("client.deleted", client.id);
     } catch (error) {
       logger.error(`Error deleting device for client ${client.id}:`, error);
