@@ -84,14 +84,6 @@ class QuotaService {
           throw this.createError("Quota not found", HttpStatus.NOT_FOUND);
         }
 
-        if (quota.balance < amount) {
-          throw this.createError("Insufficient balance", HttpStatus.CONFLICT, {
-            required: amount,
-            available: quota.balance,
-            missing: amount - quota.balance,
-          });
-        }
-
         await tx.quota.update({
           where: { userId },
           data: {

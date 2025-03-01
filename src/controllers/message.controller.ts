@@ -68,11 +68,14 @@ export const sendMessages: RequestHandler = async (
     }
 
     const requiredQuota = numbers.length;
-    const balance = await QuotaService.getAvailableBalance(userId);
+    const { balance } = await QuotaService.getAvailableBalance(userId);
     if (balance < requiredQuota) {
       ResponseUtil.conflict(res, "Insufficient quota balance", [
         `Required: ${requiredQuota}, Available: ${balance}`,
       ]);
+      logger.warn(
+        `Insufficient quota balance for user ${userId} (Required: ${requiredQuota}, Available: ${balance})`
+      );
       return;
     }
 
