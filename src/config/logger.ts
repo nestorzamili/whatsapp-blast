@@ -92,8 +92,6 @@ const logger = winston.createLogger({
 });
 
 // Log environment on startup
-logger.info(
-  `Logger initialized in ${process.env.NODE_ENV || "development"} mode`
-);
+logger.info(`Initialized in ${process.env.NODE_ENV || "development"} mode`);
 
 export default logger;

@@ -16,6 +16,8 @@ dotenv.config();
 
 const app = express();
 
+app.set("trust proxy", true);
+
 // Middleware
 app.use(morganMiddleware);
 app.use(cors());
