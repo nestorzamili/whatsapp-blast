@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.3.3](https://github.com/nestorzamili/blastify/compare/v4.3.2...v4.3.3) (2025-03-01)
+
+
+### Bug Fixes
+
+* **logger:** enhance logging behavior for production and development environments ([3977693](https://github.com/nestorzamili/blastify/commit/3977693bb113f7bbf0adf01c7edab6b88678092e))
+
 ## [4.3.2](https://github.com/nestorzamili/blastify/compare/v4.3.1...v4.3.2) (2025-03-01)
 
 
