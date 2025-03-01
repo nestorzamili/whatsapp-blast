@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.3.2](https://github.com/nestorzamili/blastify/compare/v4.3.1...v4.3.2) (2025-03-01)
+
+
+### Bug Fixes
+
+* **logger:** improve logging initialization message and enhance IP address handling in morgan middleware ([7832c87](https://github.com/nestorzamili/blastify/commit/7832c87831c12a7a30eb1ff7007a058bcf35b6f8))
+
 ## [4.3.1](https://github.com/nestorzamili/blastify/compare/v4.3.0...v4.3.1) (2025-03-01)
 
 
