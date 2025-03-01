@@ -1,7 +1,9 @@
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
+import logger from "../config/logger";
 
+// Load environment variables immediately but silently
 (function loadEnv() {
   try {
     let currentDir = __dirname;
@@ -17,7 +19,9 @@ import fs from "fs";
       dotenv.config({ path: envPath });
     }
   } catch (error) {
-    console.error("Error loading environment:", error);
+    if (process.env.NODE_ENV !== "production") {
+      logger.error("Failed to load environment variables", error);
+    }
   }
 })();
 

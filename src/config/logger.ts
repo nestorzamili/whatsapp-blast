@@ -48,7 +48,7 @@ const getTransports = () => {
     ];
   } else {
     return [
-      new winston.transports.Console(),
+      // Console removed for production
       new winston.transports.File({
         filename: "logs/error.log",
         level: "error",
@@ -70,7 +70,6 @@ const getTransports = () => {
   }
 };
 
-// Exception handlers for production
 const exceptionHandlers = isProduction()
   ? {
       exceptionHandlers: [
@@ -82,7 +81,6 @@ const exceptionHandlers = isProduction()
     }
   : {};
 
-// Create logger
 const logger = winston.createLogger({
   level: isDevelopment() ? "debug" : "http",
   levels,
@@ -91,7 +89,8 @@ const logger = winston.createLogger({
   ...exceptionHandlers,
 });
 
-// Log environment on startup
-logger.info(`Initialized in ${process.env.NODE_ENV || "development"} mode`);
+if (isDevelopment()) {
+  logger.info(`Initialized in ${process.env.NODE_ENV || "development"} mode`);
+}
 
 export default logger;
