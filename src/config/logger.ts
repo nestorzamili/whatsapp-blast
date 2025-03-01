@@ -1,6 +1,16 @@
 import winston from "winston";
+import { isProduction, isDevelopment } from "../utils/environment";
 
 const { combine, timestamp, colorize, printf, json } = winston.format;
+
+// Log levels with colors
+const levels = {
+  error: 0,
+  warn: 1,
+  info: 2,
+  http: 3,
+  debug: 4,
+};
 
 const colors = {
   error: "red",
@@ -12,65 +22,78 @@ const colors = {
 
 winston.addColors(colors);
 
-const environment = process.env.NODE_ENV || "development";
+// Format configurations
+const formats = {
+  development: combine(
+    colorize(),
+    timestamp({ format: "YYYY-MM-DD HH:mm:ss:ms" }),
+    printf((info) => `${info.timestamp} ${info.level}: ${info.message}`)
+  ),
+  production: combine(timestamp(), json()),
+};
 
-// Development format
-const developmentFormat = combine(
-  colorize(),
-  timestamp({ format: "YYYY-MM-DD HH:mm:ss:ms" }),
-  printf((info) => `${info.timestamp} ${info.level}: ${info.message}`)
-);
+// Transport configurations
+const getTransports = () => {
+  if (isDevelopment()) {
+    return [
+      new winston.transports.Console(),
+      new winston.transports.File({
+        filename: "logs/error.log",
+        level: "error",
+      }),
+      new winston.transports.File({
+        filename: "logs/debug.log",
+        level: "debug",
+      }),
+    ];
+  } else {
+    return [
+      new winston.transports.Console(),
+      new winston.transports.File({
+        filename: "logs/error.log",
+        level: "error",
+        maxsize: 5242880, // 5MB
+        maxFiles: 5,
+      }),
+      new winston.transports.File({
+        filename: "logs/http.log",
+        level: "http",
+        maxsize: 5242880, // 5MB
+        maxFiles: 5,
+      }),
+      new winston.transports.File({
+        filename: "logs/combined.log",
+        maxsize: 5242880, // 5MB
+        maxFiles: 5,
+      }),
+    ];
+  }
+};
 
-// Production format
-const productionFormat = combine(timestamp(), json());
+// Exception handlers for production
+const exceptionHandlers = isProduction()
+  ? {
+      exceptionHandlers: [
+        new winston.transports.File({ filename: "logs/exceptions.log" }),
+      ],
+      rejectionHandlers: [
+        new winston.transports.File({ filename: "logs/rejections.log" }),
+      ],
+    }
+  : {};
 
+// Create logger
 const logger = winston.createLogger({
-  level: environment === "development" ? "debug" : "http", // Changed from 'info' to 'http'
-  format: environment === "development" ? developmentFormat : productionFormat,
-  transports: [
-    ...(environment === "development"
-      ? [
-          // Development transports
-          new winston.transports.Console(),
-          new winston.transports.File({
-            filename: "logs/error.log",
-            level: "error",
-          }),
-          new winston.transports.File({
-            filename: "logs/debug.log",
-            level: "debug",
-          }),
-        ]
-      : [
-          // Production transports
-          new winston.transports.File({
-            filename: "logs/error.log",
-            level: "error",
-            maxsize: 5242880, // 5MB
-            maxFiles: 5,
-          }),
-          new winston.transports.File({
-            filename: "logs/http.log", // Added HTTP log file
-            level: "http",
-            maxsize: 5242880, // 5MB
-            maxFiles: 5,
-          }),
-          new winston.transports.File({
-            filename: "logs/combined.log",
-            maxsize: 5242880, // 5MB
-            maxFiles: 5,
-          }),
-        ]),
-  ],
-  // Handling Uncaught Exceptions in production
-  ...(environment === "production" && {
-    exceptionHandlers: [
-      new winston.transports.File({ filename: "logs/exceptions.log" }),
-    ],
-    rejectionHandlers: [
-      new winston.transports.File({ filename: "logs/rejections.log" }),
-    ],
-  }),
+  level: isDevelopment() ? "debug" : "http",
+  levels,
+  format: isDevelopment() ? formats.development : formats.production,
+  transports: getTransports(),
+  ...exceptionHandlers,
 });
+
+// Log environment on startup
+logger.info(
+  `Logger initialized in ${process.env.NODE_ENV || "development"} mode`
+);
 
 export default logger;
