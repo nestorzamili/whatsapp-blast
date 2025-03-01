@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.2.2](https://github.com/nestorzamili/blastify/compare/v4.2.1...v4.2.2) (2025-03-01)
+
+
+### Chores
+
+* remove deprecated .env-example file and update quota balance handling ([3610247](https://github.com/nestorzamili/blastify/commit/36102471a4433b825bc8c80c2f020af60eecc370))
+
 ## [4.2.1](https://github.com/nestorzamili/blastify/compare/v4.2.0...v4.2.1) (2025-02-28)
 
 
