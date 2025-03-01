@@ -25,7 +25,7 @@ const developmentFormat = combine(
 const productionFormat = combine(timestamp(), json());
 
 const logger = winston.createLogger({
-  level: environment === "development" ? "debug" : "info",
+  level: environment === "development" ? "debug" : "http", // Changed from 'info' to 'http'
   format: environment === "development" ? developmentFormat : productionFormat,
   transports: [
     ...(environment === "development"
@@ -46,6 +46,12 @@ const logger = winston.createLogger({
           new winston.transports.File({
             filename: "logs/error.log",
             level: "error",
+            maxsize: 5242880, // 5MB
+            maxFiles: 5,
+          }),
+          new winston.transports.File({
+            filename: "logs/http.log", // Added HTTP log file
+            level: "http",
             maxsize: 5242880, // 5MB
             maxFiles: 5,
           }),
