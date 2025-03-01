@@ -10,19 +10,12 @@ const stream = {
 const developmentFormat =
   ':method :url :status :response-time ms - :res[content-length] ":referrer" ":user-agent"';
 
-const productionFormat = ":remote-addr :method :url :status :response-time ms";
+const productionFormat =
+  ':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" :response-time ms';
 
 const morganMiddleware = morgan(
   environment === "development" ? developmentFormat : productionFormat,
-  {
-    stream,
-    skip: (req, res) => {
-      if (environment === "production") {
-        return req.url === "/health" && res.statusCode === 200;
-      }
-      return false;
-    },
-  }
+  { stream }
 );
 
 export default morganMiddleware;
