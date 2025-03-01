@@ -1,81 +1,78 @@
 pipeline {
     agent any
-    
-    parameters {
-        gitParameter name: 'BRANCH', 
-                    type: 'PT_BRANCH',
-                    defaultValue: 'main',
-                    description: 'Select the branch to build'
-                    
-        string(name: 'TAG', 
-               defaultValue: '', 
-               description: 'Tag version (leave empty to use latest git tag)')
-    }
-    
+
     environment {
-        DOCKER_HUB_CREDS = credentials('docker-hub-credentials')
-        DOCKER_IMAGE = "blastify"
-        DOCKER_USERNAME = "${DOCKER_HUB_CREDS_USR}"
+        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials') // Sesuaikan dengan ID credentials Docker Hub di Jenkins
+        DOCKER_IMAGE_NAME = 'nestorzamili/blastify' // Ganti dengan nama image Docker Anda
     }
-    
+
     stages {
-        stage('Checkout') {
-            steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: "${params.BRANCH}"]],
-                    doGenerateSubmoduleConfigurations: false,
-                    extensions: [[$class: 'CleanBeforeCheckout']],
-                    userRemoteConfigs: [[
-                        credentialsId: 'git-credentials', 
-                        url: 'https://github.com/nestorzamili/blastify.git'
-                    ]]
-                ])
-            }
-        }
-        
-        stage('Determine Tag') {
+        stage('Select Branch') {
             steps {
                 script {
-                    if (params.TAG.trim()) {
-                        // Use provided tag
-                        env.BUILD_TAG = params.TAG.trim()
-                    } else {
-                        // Get latest git tag, or use default
-                        try {
-                            env.BUILD_TAG = sh(script: 'git describe --tags --abbrev=0', returnStdout: true).trim()
-                        } catch (Exception e) {
-                            echo "No git tags found, using default version"
-                            env.BUILD_TAG = '0.0.1'
-                        }
-                    }
-                    echo "Building with tag: ${env.BUILD_TAG}"
+                    // Ambil list branch dari GitHub
+                    def branches = sh(script: "git ls-remote --heads https://github.com/nestorzamili/blastify.git | awk '{print \$2}' | sed 's/refs\\/heads\\///'", returnStdout: true).trim().split('\n')
+                    
+                    // Tampilkan pilihan branch
+                    BRANCH_NAME = input(
+                        id: 'branch', message: 'Pilih branch', parameters: [
+                            choice(name: 'BRANCH_NAME', choices: branches, description: 'Pilih branch yang akan di-build')
+                        ]
+                    )
+                    
+                    // Checkout branch yang dipilih
+                    checkout([$class: 'GitSCM', branches: [[name: BRANCH_NAME]], userRemoteConfigs: [[url: 'https://github.com/nestorzamili/blastify.git']]])
                 }
             }
         }
-        
-        stage('Docker Login') {
+
+        stage('Select Version') {
             steps {
-                sh 'echo $DOCKER_HUB_CREDS_PSW | docker login -u $DOCKER_HUB_CREDS_USR --password-stdin'
+                script {
+                    // Ambil list tag dari GitHub
+                    def tags = sh(script: "git ls-remote --tags https://github.com/nestorzamili/blastify.git | awk '{print \$2}' | sed 's/refs\\/tags\\///' | sed 's/\\^{}//'", returnStdout: true).trim().split('\n')
+                    
+                    // Tampilkan pilihan tag
+                    TAG_NAME = input(
+                        id: 'tag', message: 'Pilih version', parameters: [
+                            choice(name: 'TAG_NAME', choices: tags, description: 'Pilih version yang akan di-build')
+                        ]
+                    )
+                    
+                    // Checkout tag yang dipilih
+                    checkout([$class: 'GitSCM', branches: [[name: TAG_NAME]], userRemoteConfigs: [[url: 'https://github.com/nestorzamili/blastify.git']]])
+                }
             }
         }
-        
-        stage('Build and Push') {
+
+        stage('Build Docker Image') {
             steps {
-                sh """
-                docker build -t ${DOCKER_USERNAME}/${DOCKER_IMAGE}:${env.BUILD_TAG} \
-                    --build-arg GIT_TAG=${env.BUILD_TAG} \
-                    .
-                docker push ${DOCKER_USERNAME}/${DOCKER_IMAGE}:${env.BUILD_TAG}
-                """
+                script {
+                    // Build Docker image
+                    docker.build("${env.DOCKER_IMAGE_NAME}:${TAG_NAME}")
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    // Login ke Docker Hub
+                    docker.withRegistry('https://registry.hub.docker.com', env.DOCKER_HUB_CREDENTIALS) {
+                        // Push Docker image
+                        docker.image("${env.DOCKER_IMAGE_NAME}:${TAG_NAME}").push()
+                    }
+                }
             }
         }
     }
-    
+
     post {
-        always {
-            sh 'docker logout'
-            cleanWs()
+        success {
+            echo "Build dan push image Docker berhasil!"
+        }
+        failure {
+            echo "Build dan push image Docker gagal."
         }
     }
 }
