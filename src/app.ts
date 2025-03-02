@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.routes";
 import clientRoute from "./routes/client.routes";
 import messageRoute from "./routes/message.routes";
 import quotaRoute from "./routes/quota.routes";
+import midtransRoutes from "./routes/midtrans.routes";
 import logger from "./config/logger";
 import { ResponseUtil, HttpStatus } from "./utils/response.util";
 import prisma from "./config/db";
@@ -64,6 +65,7 @@ app.use("/auth", authRoutes);
 app.use("/client", clientRoute);
 app.use("/message", messageRoute);
 app.use("/quota", quotaRoute);
+app.use("/midtrans", midtransRoutes);
 
 // Error handler
 app.use(

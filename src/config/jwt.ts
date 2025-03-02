@@ -1,6 +1,6 @@
 import jwt, { SignOptions, TokenExpiredError } from "jsonwebtoken";
 import crypto from "crypto";
-import { UserPayload, VerificationResult } from "../types";
+import { UserPayload, VerificationResult } from "../types/types";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET as string;

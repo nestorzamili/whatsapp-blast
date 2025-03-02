@@ -53,13 +53,54 @@ model message {
 }
 
 model quota {
-  id           String   @id @default(uuid())
-  userId       String   @unique
-  user         user     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  balance      Int      @default(0)
-  lockedAmount Int      @default(0)
-  createdAt    DateTime @default(now()) @db.Timestamptz
-  updatedAt    DateTime @updatedAt @db.Timestamptz
+  id           String        @id @default(uuid())
+  userId       String        @unique
+  user         user          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      Int           @default(0)
+  lockedAmount Int           @default(0)
+  transactions transaction[]
+  createdAt    DateTime      @default(now()) @db.Timestamptz
+  updatedAt    DateTime      @updatedAt @db.Timestamptz
+}
+
+model transaction {
+  id          String            @id @default(uuid())
+  quotaId     String
+  quota       quota             @relation(fields: [quotaId], references: [id], onDelete: Cascade)
+  orderId     String            @unique
+  amount      Int // Total amount in IDR
+  quotaAmount Int // Number of quota units
+  status      TransactionStatus @default(PENDING)
+
+  // Core Midtrans fields
+  paymentType    String? // payment method: gopay, bank_transfer, qris, etc.
+  midtransId     String? // Midtrans transaction_id
+  midtransStatus String? // Raw transaction_status from Midtrans
+
+  // Payment method specific details
+  paymentDetails Json? // Store payment-specific details (VA numbers, QR info, etc)
+
+  // Timestamps from Midtrans
+  paymentTime    DateTime? @db.Timestamptz // When payment was initiated
+  settlementTime DateTime? @db.Timestamptz // When payment was settled
+  expiryTime     DateTime? @db.Timestamptz // Payment expiration time
+
+  // Metadata
+  statusCode  String? // Status code from Midtrans
+  fraudStatus String? // Fraud assessment result
+
+  // Debug information - can be cleaned up periodically
+  rawNotification Json? // Complete notification data for debugging
+
+  // Snap URLs and tokens
+  snapToken       String? // Token for Snap JS integration
+  snapRedirectUrl String? // Redirect URL for Snap
+
+  // Important dates
+  paidAt    DateTime? @db.Timestamptz // When payment was confirmed successful
+  expiredAt DateTime? @db.Timestamptz // When transaction will expire
+  createdAt DateTime  @default(now()) @db.Timestamptz
+  updatedAt DateTime  @updatedAt @db.Timestamptz
 }
 
 enum ClientStatus {
@@ -73,4 +114,12 @@ enum MessageStatus {
   PENDING
   SENT
   FAILED
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXPIRED
+  CANCELED
 }
