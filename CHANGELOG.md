@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.4.0](https://github.com/nestorzamili/blastify/compare/v4.3.3...v4.4.0) (2025-03-02)
+
+
+### Features
+
+* integrate Midtrans payment gateway with transaction handling and notification routes ([e7023b0](https://github.com/nestorzamili/blastify/commit/e7023b0528efc2503949f3125cca09403c5179ae))
+
+
+### Bug Fixes
+
+* add Jenkins pipeline for Docker build and push ([009d973](https://github.com/nestorzamili/blastify/commit/009d973f7977457162ef644a1ccae0e3a48f17e3))
+* enhance Jenkins pipeline to allow branch and tag selection for Docker builds ([059f306](https://github.com/nestorzamili/blastify/commit/059f3060c38b766be9c48718a23bcb258dbdca1b))
+
 ## [4.3.3](https://github.com/nestorzamili/blastify/compare/v4.3.2...v4.3.3) (2025-03-01)
 
 
